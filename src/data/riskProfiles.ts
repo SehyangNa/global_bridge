@@ -24,6 +24,29 @@ export const industries: Industry[] = [
 ]
 export const urgencies: Urgency[] = ['Low', 'Medium', 'High']
 
+export const officialPublicDataLinks = [
+  {
+    label: 'MOFA safety information',
+    url: 'https://www.0404.go.kr/dev/main.mofa',
+  },
+  {
+    label: 'MOFA travel alerts',
+    url: 'https://www.0404.go.kr/dev/country_view.mofa',
+  },
+  {
+    label: 'KOTRA market news',
+    url: 'https://dream.kotra.or.kr/kotranews/index.do',
+  },
+  {
+    label: 'KOTRA country information',
+    url: 'https://dream.kotra.or.kr/kotranews/cms/nation/actionNatIemList.do?MENU_ID=220',
+  },
+  {
+    label: 'Korea Eximbank exchange-rate information',
+    url: 'https://www.koreaexim.go.kr/ir/HPHKIR019M01',
+  },
+]
+
 export const riskProfiles: Record<Country, RiskProfile> = {
   Kenya: {
     country: 'Kenya',
@@ -54,6 +77,48 @@ export const riskProfiles: Record<Country, RiskProfile> = {
     ],
     alternativeStrategy:
       'Stage commitments through a pilot shipment or limited-scope engagement, then expand after the local partner demonstrates delivery quality and documentation discipline.',
+    publicDataSignals: [
+      {
+        source: 'MOFA safety information',
+        label: 'Urban demonstrations watch',
+        level: 'medium',
+        description:
+          'MVP mock signal — periodic demonstrations may affect central Nairobi and major transport routes.',
+        lastUpdated: '12 Jun 2026',
+      },
+      {
+        source: 'MOFA travel alert',
+        label: 'Regional travel caution',
+        level: 'medium',
+        description:
+          'MVP mock signal — use enhanced route planning outside established business districts and tourist corridors.',
+        lastUpdated: '10 Jun 2026',
+      },
+      {
+        source: 'KOTRA market news',
+        label: 'Digital trade momentum',
+        level: 'low',
+        description:
+          'MVP mock signal — market reporting points to continued opportunity in digital services and trade enablement.',
+        lastUpdated: '14 Jun 2026',
+      },
+      {
+        source: 'KOTRA country information',
+        label: 'Customs process variability',
+        level: 'medium',
+        description:
+          'MVP mock signal — import documentation and county-level requirements warrant local validation.',
+        lastUpdated: '08 Jun 2026',
+      },
+      {
+        source: 'Korea Eximbank exchange-rate signal',
+        label: 'Shilling volatility monitor',
+        level: 'medium',
+        description:
+          'MVP mock signal — allow pricing headroom for potential KRW/KES movement during the engagement.',
+        lastUpdated: '15 Jun 2026',
+      },
+    ],
     officialLinks: [
       {
         label: 'U.S. Travel Advisory: Kenya',
@@ -98,6 +163,48 @@ export const riskProfiles: Record<Country, RiskProfile> = {
     ],
     alternativeStrategy:
       'Use a Lagos- or Abuja-based distributor, agent, or implementation partner for an initial market test before establishing direct operations or long-dated exposure.',
+    publicDataSignals: [
+      {
+        source: 'MOFA safety information',
+        label: 'State-level security variation',
+        level: 'high',
+        description:
+          'MVP mock signal — security exposure varies significantly by state, route, and operating location.',
+        lastUpdated: '13 Jun 2026',
+      },
+      {
+        source: 'MOFA travel alert',
+        label: 'Enhanced travel planning',
+        level: 'high',
+        description:
+          'MVP mock signal — vetted transport, confirmed contacts, and location-specific checks are recommended.',
+        lastUpdated: '11 Jun 2026',
+      },
+      {
+        source: 'KOTRA market news',
+        label: 'Large-market demand',
+        level: 'low',
+        description:
+          'MVP mock signal — consumer scale and technology demand support opportunity despite execution risk.',
+        lastUpdated: '14 Jun 2026',
+      },
+      {
+        source: 'KOTRA country information',
+        label: 'Import compliance complexity',
+        level: 'high',
+        description:
+          'MVP mock signal — customs classification, permits, and local documentation need early verification.',
+        lastUpdated: '09 Jun 2026',
+      },
+      {
+        source: 'Korea Eximbank exchange-rate signal',
+        label: 'Naira volatility pressure',
+        level: 'high',
+        description:
+          'MVP mock signal — protect margins with currency clauses, milestones, and shorter pricing windows.',
+        lastUpdated: '15 Jun 2026',
+      },
+    ],
     officialLinks: [
       {
         label: 'U.S. Travel Advisory: Nigeria',
@@ -142,6 +249,48 @@ export const riskProfiles: Record<Country, RiskProfile> = {
     ],
     alternativeStrategy:
       'Base the first phase around established hubs such as Johannesburg, Cape Town, or Durban, with remote partner validation before expanding into secondary locations.',
+    publicDataSignals: [
+      {
+        source: 'MOFA safety information',
+        label: 'Urban crime precautions',
+        level: 'medium',
+        description:
+          'MVP mock signal — secure transfers and disciplined movement planning remain important in major cities.',
+        lastUpdated: '12 Jun 2026',
+      },
+      {
+        source: 'MOFA travel alert',
+        label: 'Business travel caution',
+        level: 'medium',
+        description:
+          'MVP mock signal — review neighborhood and road conditions before meetings or site visits.',
+        lastUpdated: '10 Jun 2026',
+      },
+      {
+        source: 'KOTRA market news',
+        label: 'Established commercial gateway',
+        level: 'low',
+        description:
+          'MVP mock signal — mature finance and professional services support regional market entry.',
+        lastUpdated: '13 Jun 2026',
+      },
+      {
+        source: 'KOTRA country information',
+        label: 'Infrastructure continuity watch',
+        level: 'medium',
+        description:
+          'MVP mock signal — confirm power, rail, port, and supplier contingency arrangements.',
+        lastUpdated: '08 Jun 2026',
+      },
+      {
+        source: 'Korea Eximbank exchange-rate signal',
+        label: 'Rand movement monitor',
+        level: 'medium',
+        description:
+          'MVP mock signal — use current quotations and contract buffers for KRW/ZAR exposure.',
+        lastUpdated: '15 Jun 2026',
+      },
+    ],
     officialLinks: [
       {
         label: 'U.S. Travel Advisory: South Africa',

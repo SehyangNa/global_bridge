@@ -94,6 +94,16 @@ export function calculateScores(
     scores.logistics = capScore(scores.logistics + 5)
   }
 
+  if (purpose === 'Investment') {
+    scores.political = capScore(scores.political + 8)
+    scores.business = capScore(scores.business + 10)
+  }
+
+  if (purpose === 'Partner Research') {
+    scores.security = capScore(scores.security + 3)
+    scores.business = capScore(scores.business + 8)
+  }
+
   applyCategoryAdjustments(scores, industryAdjustments[industry])
 
   const baseOverall =

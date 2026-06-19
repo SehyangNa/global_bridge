@@ -114,13 +114,15 @@ select:focus-visible {
 h1,
 h2,
 h3,
+h4,
 p {
   margin: 0;
 }
 
 h1,
 h2,
-h3 {
+h3,
+h4 {
   color: var(--ink);
   letter-spacing: 0;
 }
@@ -153,6 +155,15 @@ h3 {
   margin-top: 18px;
   color: var(--muted);
   font-size: 1.05rem;
+}
+
+.source-intro {
+  max-width: 700px;
+  margin-top: 14px;
+  border-left: 3px solid #0f766e;
+  padding-left: 14px;
+  color: #334155;
+  font-size: 0.94rem;
 }
 
 .landing .primary-button {
@@ -335,6 +346,17 @@ select {
   gap: 10px;
 }
 
+.transparency-note {
+  margin-top: 22px;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #0c4a6e;
+  background: #f0f9ff;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -458,6 +480,107 @@ select {
   background: #f8fafc;
 }
 
+.purpose-action strong {
+  color: var(--ink);
+}
+
+.public-data-card {
+  grid-column: 1 / -1;
+}
+
+.public-data-heading {
+  align-items: start;
+}
+
+.public-data-heading p,
+.public-data-links > p {
+  margin-top: 6px;
+  font-size: 0.9rem;
+}
+
+.mock-label {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #7c2d12;
+  background: #ffedd5;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.public-signal-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.public-signal {
+  display: flex;
+  min-height: 210px;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: #f8fafc;
+}
+
+.signal-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.signal-source {
+  color: #123c69;
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.signal-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.signal-badge.low {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.signal-badge.medium {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.signal-badge.high {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.public-signal h4 {
+  margin-top: 14px;
+  font-size: 0.98rem;
+}
+
+.public-signal p {
+  margin-top: 8px;
+  font-size: 0.88rem;
+}
+
+.public-signal small {
+  margin-top: auto;
+  padding-top: 14px;
+  color: #64748b;
+  font-weight: 800;
+}
+
 .card p,
 .card li {
   color: var(--muted);
@@ -519,6 +642,10 @@ ol {
   .dashboard-actions {
     justify-content: flex-start;
   }
+
+  .public-signal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 620px) {
@@ -551,5 +678,14 @@ ol {
   .dashboard-actions button,
   .form-submit {
     width: 100%;
+  }
+
+  .public-data-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .public-signal-grid {
+    grid-template-columns: 1fr;
   }
 }

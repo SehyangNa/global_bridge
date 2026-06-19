@@ -35,6 +35,16 @@ export type OfficialLink = {
   url: string
 }
 
+export type PublicDataSignalLevel = 'low' | 'medium' | 'high'
+
+export type PublicDataSignal = {
+  source: string
+  label: string
+  level: PublicDataSignalLevel
+  description: string
+  lastUpdated: string
+}
+
 export type RiskProfile = {
   country: Country
   region: string
@@ -44,6 +54,7 @@ export type RiskProfile = {
   recommendedActions: string[]
   warningSignals: string[]
   alternativeStrategy: string
+  publicDataSignals: PublicDataSignal[]
   officialLinks: OfficialLink[]
 }
 

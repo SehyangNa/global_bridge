@@ -3,6 +3,7 @@ import './App.css'
 import {
   countries,
   industries,
+  officialPublicDataLinks,
   purposes,
   riskProfiles,
   urgencies,
@@ -18,6 +19,19 @@ import {
 } from './utils/riskScoring'
 
 type Step = 'landing' | 'input' | 'result'
+
+const purposeRecommendations: Record<Purpose, string> = {
+  'Business Trip':
+    'Confirm current public safety and travel-alert signals before every trip segment.',
+  Import:
+    'Cross-check KOTRA trade guidance and exchange-rate movement before confirming landed cost.',
+  Export:
+    'Validate market-entry rules, buyer documentation, and currency terms before shipment.',
+  Investment:
+    'Use country information and market-news signals to stage investment through measurable milestones.',
+  'Partner Research':
+    'Verify counterpart credentials and compare partner claims with official country and market information.',
+}
 
 function App() {
   const [step, setStep] = useState<Step>('landing')
@@ -43,8 +57,11 @@ function App() {
   )
   const level = riskLevel(result.overallScore)
   const tone = riskTone(result.overallScore)
+  const publicSignalSummary = profile.publicDataSignals
+    .map((signal) => `${signal.source}: ${signal.label} (${signal.level})`)
+    .join('; ')
 
-  const summaryText = `${profile.country} risk briefing for ${request.purpose.toLowerCase()} in ${request.industry.toLowerCase()}: ${level} risk, score ${result.overallScore}/100. ${profile.summary} Key actions: ${profile.recommendedActions.join(' ')}`
+  const summaryText = `${profile.country} public data-powered AI risk briefing for ${request.purpose.toLowerCase()} in ${request.industry.toLowerCase()}: ${level} risk, score ${result.overallScore}/100. ${profile.summary} Purpose-specific recommendation: ${purposeRecommendations[request.purpose]} MVP mock public-data signals: ${publicSignalSummary}. Key actions: ${profile.recommendedActions.join(' ')}`
 
   function updateRequest<Key extends keyof RiskRequest>(
     key: Key,
@@ -88,16 +105,21 @@ function App() {
       {step === 'landing' && (
         <section className="landing">
           <div className="hero-copy">
-            <span className="eyebrow">Country risk intelligence</span>
+            <span className="eyebrow">Public-data country intelligence</span>
             <h1>Global Bridge</h1>
             <p className="tagline">
-              AI-powered country risk intelligence for global business decisions.
+              Public data-powered AI country risk intelligence
             </p>
             <p className="intro">
               Compare market, travel, logistics, health, and partner risks before
               entering a new country. Global Bridge turns country signals into a
               practical briefing for small teams that need to move fast without
               missing critical exposure.
+            </p>
+            <p className="source-intro">
+              This MVP is designed around public sources including MOFA safety
+              information and travel alerts, KOTRA market news and country
+              information, and Korea Eximbank exchange-rate data.
             </p>
             <button className="primary-button" type="button" onClick={() => setStep('input')}>
               Start Risk Check
@@ -106,8 +128,8 @@ function App() {
 
           <div className="hero-panel" aria-label="Risk intelligence preview">
             <div className="panel-header">
-              <span>Live briefing preview</span>
-              <span className="status-dot">Active</span>
+              <span>Public-data briefing preview</span>
+              <span className="status-dot">MVP mock</span>
             </div>
             <div className="score-ring">
               <span>64</span>
@@ -128,8 +150,8 @@ function App() {
               </div>
             </div>
             <div className="signal-list">
-              <span>Warning signals</span>
-              <p>FX pressure, port delays, route disruptions</p>
+              <span>Mock public-data signals</span>
+              <p>MOFA travel context, KOTRA market news, FX pressure</p>
             </div>
           </div>
         </section>
@@ -142,7 +164,8 @@ function App() {
             <h2>Generate a country risk briefing</h2>
             <p>
               Select the country, purpose, industry, and urgency. The MVP uses
-              local mock data and transparent scoring adjustments.
+              mock public-data signals and transparent scoring adjustments. No
+              live API data is fetched.
             </p>
           </div>
 
@@ -234,6 +257,12 @@ function App() {
             </div>
           </div>
 
+          <p className="transparency-note">
+            This MVP uses mock public-data signals to demonstrate how official
+            public data APIs can support business risk briefings. It does not yet
+            fetch live data.
+          </p>
+
           <div className="metric-grid">
             <article className={`metric-card ${tone}`}>
               <span>Overall risk level</span>
@@ -287,6 +316,10 @@ function App() {
             <article className="card">
               <h3>Recommended actions</h3>
               <ol>
+                <li className="purpose-action">
+                  <strong>{request.purpose}:</strong>{' '}
+                  {purposeRecommendations[request.purpose]}
+                </li>
                 {profile.recommendedActions.map((action) => (
                   <li key={action}>{action}</li>
                 ))}
@@ -307,8 +340,45 @@ function App() {
               <p>{profile.alternativeStrategy}</p>
             </article>
 
+            <article className="card public-data-card">
+              <div className="card-heading public-data-heading">
+                <div>
+                  <h3>Public Data Signals</h3>
+                  <p>Five MVP mock signals structured for future API connections.</p>
+                </div>
+                <span className="mock-label">Mock data · not live</span>
+              </div>
+              <div className="public-signal-grid">
+                {profile.publicDataSignals.map((signal) => (
+                  <section className="public-signal" key={signal.source}>
+                    <div className="signal-heading">
+                      <span className="signal-source">{signal.source}</span>
+                      <span className={`signal-badge ${signal.level}`}>
+                        {signal.level}
+                      </span>
+                    </div>
+                    <h4>{signal.label}</h4>
+                    <p>{signal.description}</p>
+                    <small>Last updated: {signal.lastUpdated}</small>
+                  </section>
+                ))}
+              </div>
+            </article>
+
+            <article className="card official-links public-data-links">
+              <h3>Official public data sources</h3>
+              <p>Reference links for the official sources this MVP is designed to use.</p>
+              <div>
+                {officialPublicDataLinks.map((link) => (
+                  <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </article>
+
             <article className="card official-links">
-              <h3>Official information links</h3>
+              <h3>Additional country links</h3>
               <div>
                 {profile.officialLinks.map((link) => (
                   <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
@@ -324,8 +394,8 @@ function App() {
                 <p>{summaryText}</p>
               ) : (
                 <p>
-                  Generate a compact executive briefing for sharing with a team,
-                  advisor, or potential partner.
+                  Generate a compact executive briefing that includes the selected
+                  context and mock public-data signal summary.
                 </p>
               )}
             </article>
