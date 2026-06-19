@@ -112,13 +112,28 @@ function App() {
       window.setTimeout(() => setCopyState('idle'), 1800)
     } catch {
       const textArea = document.createElement('textarea')
+      const previouslyFocused = document.activeElement
       textArea.value = summaryText
       textArea.style.position = 'fixed'
-      textArea.style.opacity = '0'
+      textArea.style.left = '-9999px'
+      textArea.style.top = '0'
+      textArea.setAttribute('readonly', '')
+      textArea.setAttribute('aria-hidden', 'true')
       document.body.appendChild(textArea)
+      textArea.focus({ preventScroll: true })
       textArea.select()
-      const copied = document.execCommand('copy')
+      textArea.setSelectionRange(0, textArea.value.length)
+      const copied = (() => {
+        try {
+          return document.execCommand('copy')
+        } catch {
+          return false
+        }
+      })()
       textArea.remove()
+      if (previouslyFocused instanceof HTMLElement) {
+        previouslyFocused.focus({ preventScroll: true })
+      }
       setCopyState(copied ? 'copied' : 'failed')
       if (copied) {
         window.setTimeout(() => setCopyState('idle'), 1800)
