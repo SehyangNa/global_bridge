@@ -80,11 +80,25 @@ function App() {
 
   async function copySummary() {
     try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API unavailable')
+      }
       await navigator.clipboard.writeText(summaryText)
       setCopyStatus('Copied')
       window.setTimeout(() => setCopyStatus('Copy summary'), 1800)
     } catch {
-      setCopyStatus('Copy failed')
+      const textArea = document.createElement('textarea')
+      textArea.value = summaryText
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      document.body.appendChild(textArea)
+      textArea.select()
+      const copied = document.execCommand('copy')
+      textArea.remove()
+      setCopyStatus(copied ? 'Copied' : 'Copy failed')
+      if (copied) {
+        window.setTimeout(() => setCopyStatus('Copy summary'), 1800)
+      }
     }
   }
 
