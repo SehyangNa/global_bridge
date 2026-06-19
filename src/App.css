@@ -541,6 +541,23 @@ select {
   text-transform: uppercase;
 }
 
+.mock-label.live,
+.signal-badge.live {
+  color: #065f46;
+  background: #d1fae5;
+}
+
+.data-status-note {
+  margin: -4px 0 16px;
+  border-left: 3px solid #0f766e;
+  padding-left: 12px;
+}
+
+.data-status-note p {
+  margin-top: 4px;
+  font-size: 0.86rem;
+}
+
 .public-signal-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -555,6 +572,11 @@ select {
   border-radius: 8px;
   padding: 16px;
   background: #f8fafc;
+}
+
+.public-signal.live-signal {
+  border-color: #99d8cb;
+  background: #f0fdfa;
 }
 
 .signal-heading {

@@ -1,6 +1,6 @@
 # Global Bridge
 
-AI-powered country risk intelligence for global business decisions.
+Public data-powered AI country risk intelligence for global business decisions.
 
 Global Bridge is a polished MVP web app for small businesses, startups, and professionals preparing for international business, travel, sourcing, investment, or partner research. It turns country risk signals into a structured, screenshot-ready briefing with category scores, practical actions, warning signals, and official links.
 
@@ -30,7 +30,9 @@ Global Bridge demonstrates how an AI-assisted risk intelligence product could ma
 - Official information links for each country profile
 - Copy summary button for quick sharing
 - Generate briefing button for a compact executive-style summary
-- Client-side implementation with no backend, authentication, payments, or database
+- Live MOFA country safety information through a local server-side API proxy
+- Automatic MVP mock-signal fallback when live MOFA data is unavailable
+- No authentication, payments, or database
 
 ## Demo Scenario
 
@@ -64,14 +66,18 @@ Use this scenario for a portfolio walkthrough, GitHub demo, or LinkedIn post:
 - React
 - TypeScript
 - Vite
+- Express
 - CSS
-- Local TypeScript mock data
+- MOFA country safety information from data.go.kr
+- Local TypeScript mock-data fallback
 - Client-side state management with React hooks
 
 ## Project Structure
 
 ```text
 global-bridge/
+├── server/
+│   └── index.js
 ├── public/
 ├── screenshots/
 │   ├── landing-page.png
@@ -81,6 +87,8 @@ global-bridge/
 │   ├── assets/
 │   ├── data/
 │   │   └── riskProfiles.ts
+│   ├── services/
+│   │   └── publicDataApi.ts
 │   ├── types/
 │   │   └── risk.ts
 │   ├── utils/
@@ -90,6 +98,7 @@ global-bridge/
 │   ├── index.css
 │   └── main.tsx
 ├── index.html
+├── .env.example
 ├── package.json
 └── README.md
 ```
@@ -102,7 +111,23 @@ Install dependencies:
 npm install
 ```
 
-Start the local development server:
+Create a local environment file and add your data.go.kr decoding service key:
+
+```bash
+cp .env.example .env.local
+```
+
+```text
+DATA_GO_KR_SERVICE_KEY=your_service_key
+```
+
+Start the API proxy in one terminal:
+
+```bash
+npm run server
+```
+
+Start Vite in a second terminal:
 
 ```bash
 npm run dev
@@ -152,7 +177,8 @@ Scores are capped at `100`. The overall score is calculated from the adjusted ca
 
 ## Current Limitations
 
-- Uses mock country profiles rather than live intelligence feeds
+- Uses live data only for MOFA country safety information; all other public-data signals remain MVP mock data
+- Falls back to MVP mock signals when the MOFA key, proxy, or upstream API is unavailable
 - Covers only Kenya, Nigeria, and South Africa
 - Does not persist user inputs or generated briefings
 - Does not include source citations inside the generated briefing text
@@ -173,4 +199,4 @@ Scores are capped at `100`. The overall score is calculated from the adjusted ca
 
 ## Disclaimer
 
-Global Bridge is an MVP prototype using mock data for demonstration purposes. It is not a real-time risk advisory service and should not be used as the sole basis for business, travel, investment, legal, security, health, or compliance decisions. Always verify critical information with official sources and qualified professionals before acting.
+Global Bridge is an MVP prototype using live MOFA safety notices when available and mock data for all remaining public-data signals. It is not a comprehensive real-time risk advisory service and should not be used as the sole basis for business, travel, investment, legal, security, health, or compliance decisions. Always verify critical information with official sources and qualified professionals before acting.

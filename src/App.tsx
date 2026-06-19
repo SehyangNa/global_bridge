@@ -16,6 +16,10 @@ import {
   riskProfiles,
   urgencies,
 } from './data/riskProfiles'
+import {
+  fetchMofaSafetyInfo,
+  type MofaSafetyItem,
+} from './services/publicDataApi'
 import type { Country, Industry, Purpose, RiskRequest, Urgency } from './types/risk'
 import {
   calculateScores,
@@ -27,6 +31,10 @@ import {
 
 type Step = 'landing' | 'input' | 'result'
 type CopyState = 'idle' | 'copied' | 'failed'
+type MofaDataState = {
+  status: 'idle' | 'loading' | 'live' | 'fallback'
+  items: MofaSafetyItem[]
+}
 
 function App() {
   const [language, setLanguage] = useState<Language>('ko')
@@ -39,6 +47,10 @@ function App() {
   })
   const [briefingGenerated, setBriefingGenerated] = useState(false)
   const [copyState, setCopyState] = useState<CopyState>('idle')
+  const [mofaData, setMofaData] = useState<MofaDataState>({
+    status: 'idle',
+    items: [],
+  })
 
   const t = ui[language]
 
@@ -67,20 +79,58 @@ function App() {
   const warningSignals = koreanProfile?.warningSignals ?? profile.warningSignals
   const alternativeStrategy =
     koreanProfile?.alternativeStrategy ?? profile.alternativeStrategy
-  const publicSignalSummary = localizedSignals
+  const liveMofaItems = mofaData.status === 'live' ? mofaData.items.slice(0, 2) : []
+  const hasLiveMofa = liveMofaItems.length > 0
+  const mockSignalsToDisplay = hasLiveMofa
+    ? localizedSignals.slice(1)
+    : localizedSignals
+  const mockSignalSummary = mockSignalsToDisplay
     .map(
       (signal) =>
         `${signal.source}: ${signal.label} (${labels.signalLevel[signal.level][language]})`,
     )
     .join('; ')
+  const liveSignalSummary = liveMofaItems
+    .map(
+      (item) =>
+        `${language === 'ko' ? '외교부 실시간 안전정보' : 'Live MOFA safety information (original Korean)'}: ${item.title}`,
+    )
+    .join('; ')
+  const publicSignalSummary = [liveSignalSummary, mockSignalSummary]
+    .filter(Boolean)
+    .join('; ')
+  const signalSummaryLabel = hasLiveMofa
+    ? language === 'ko'
+      ? '실시간 외교부 안전정보 및 MVP 모의 공공데이터 신호'
+      : 'Live MOFA safety information and MVP mock public-data signals'
+    : language === 'ko'
+      ? 'MVP 모의 공공데이터 신호'
+      : 'MVP mock public-data signals'
   const summaryText =
     language === 'ko'
-      ? `${labels.country[request.country].ko} 공공데이터 기반 AI 리스크 브리핑 — 목적: ${labels.purpose[request.purpose].ko}, 산업: ${labels.industry[request.industry].ko}, 종합 수준: ${labels.riskLevel[level].ko}, 점수: ${result.overallScore}/100. ${profileSummary} 목적별 권고: ${purposeRecommendations[request.purpose].ko} MVP 모의 공공데이터 신호: ${publicSignalSummary}. 핵심 조치: ${recommendedActions.join(' ')}`
-      : `${profile.country} public data-powered AI risk briefing for ${request.purpose.toLowerCase()} in ${request.industry.toLowerCase()}: ${level} risk, score ${result.overallScore}/100. ${profileSummary} Purpose-specific recommendation: ${purposeRecommendations[request.purpose].en} MVP mock public-data signals: ${publicSignalSummary}. Key actions: ${recommendedActions.join(' ')}`
+      ? `${labels.country[request.country].ko} 공공데이터 기반 AI 리스크 브리핑 — 목적: ${labels.purpose[request.purpose].ko}, 산업: ${labels.industry[request.industry].ko}, 종합 수준: ${labels.riskLevel[level].ko}, 점수: ${result.overallScore}/100. ${profileSummary} 목적별 권고: ${purposeRecommendations[request.purpose].ko} ${signalSummaryLabel}: ${publicSignalSummary}. 핵심 조치: ${recommendedActions.join(' ')}`
+      : `${profile.country} public data-powered AI risk briefing for ${request.purpose.toLowerCase()} in ${request.industry.toLowerCase()}: ${level} risk, score ${result.overallScore}/100. ${profileSummary} Purpose-specific recommendation: ${purposeRecommendations[request.purpose].en} ${signalSummaryLabel}: ${publicSignalSummary}. Key actions: ${recommendedActions.join(' ')}`
 
   useEffect(() => {
     document.documentElement.lang = language
   }, [language])
+
+  useEffect(() => {
+    if (step !== 'result') return
+
+    let cancelled = false
+    void fetchMofaSafetyInfo(request.country).then((data) => {
+      if (cancelled) return
+      setMofaData({
+        status: data.live && data.items.length > 0 ? 'live' : 'fallback',
+        items: data.items,
+      })
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [request.country, step])
 
   function changeLanguage(nextLanguage: Language) {
     setLanguage(nextLanguage)
@@ -98,6 +148,7 @@ function App() {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setMofaData({ status: 'loading', items: [] })
     setStep('result')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -422,12 +473,46 @@ function App() {
               <div className="card-heading public-data-heading">
                 <div>
                   <h3>{t.publicSignals}</h3>
-                  <p>{t.publicSignalsIntro}</p>
+                  <p>
+                    {hasLiveMofa
+                      ? t.publicSignalsLiveIntro
+                      : t.publicSignalsIntro}
+                  </p>
                 </div>
-                <span className="mock-label">{t.notLive}</span>
+                <span className={`mock-label ${hasLiveMofa ? 'live' : ''}`}>
+                  {hasLiveMofa ? t.livePublicData : t.notLive}
+                </span>
+              </div>
+              <div className="data-status-note" aria-live="polite">
+                <p>{t.liveAvailabilityNote}</p>
+                {mofaData.status === 'loading' && <p>{t.liveLoading}</p>}
+                {mofaData.status === 'fallback' && <p>{t.liveFallbackNote}</p>}
               </div>
               <div className="public-signal-grid">
-                {localizedSignals.map((signal) => (
+                {liveMofaItems.map((item) => (
+                  <section
+                    className="public-signal live-signal"
+                    key={`mofa-live-${item.id || item.title}`}
+                  >
+                    <div className="signal-heading">
+                      <span className="signal-source">
+                        {language === 'ko'
+                          ? '외교부 해외안전정보'
+                          : 'MOFA safety information'}
+                      </span>
+                      <span className="signal-badge live">
+                        {t.livePublicData}
+                      </span>
+                    </div>
+                    <h4>{item.title}</h4>
+                    {item.description && <p>{item.description}</p>}
+                    <small>
+                      {t.originalKorean} · {t.lastUpdated}:{' '}
+                      {item.lastUpdated || '—'}
+                    </small>
+                  </section>
+                ))}
+                {mockSignalsToDisplay.map((signal) => (
                   <section className="public-signal" key={signal.source}>
                     <div className="signal-heading">
                       <span className="signal-source">{signal.source}</span>
