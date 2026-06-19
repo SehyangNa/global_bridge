@@ -1,5 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import {
+  koreanProfiles,
+  labels,
+  officialPublicDataLabels,
+  purposeRecommendations,
+  ui,
+} from './data/localization'
+import type { Language } from './data/localization'
 import {
   countries,
   industries,
@@ -11,7 +19,6 @@ import {
 import type { Country, Industry, Purpose, RiskRequest, Urgency } from './types/risk'
 import {
   calculateScores,
-  categoryLabels,
   categoryOrder,
   riskLevel,
   riskTone,
@@ -19,21 +26,10 @@ import {
 } from './utils/riskScoring'
 
 type Step = 'landing' | 'input' | 'result'
-
-const purposeRecommendations: Record<Purpose, string> = {
-  'Business Trip':
-    'Confirm current public safety and travel-alert signals before every trip segment.',
-  Import:
-    'Cross-check KOTRA trade guidance and exchange-rate movement before confirming landed cost.',
-  Export:
-    'Validate market-entry rules, buyer documentation, and currency terms before shipment.',
-  Investment:
-    'Use country information and market-news signals to stage investment through measurable milestones.',
-  'Partner Research':
-    'Verify counterpart credentials and compare partner claims with official country and market information.',
-}
+type CopyState = 'idle' | 'copied' | 'failed'
 
 function App() {
+  const [language, setLanguage] = useState<Language>('ko')
   const [step, setStep] = useState<Step>('landing')
   const [request, setRequest] = useState<RiskRequest>({
     country: 'Kenya',
@@ -42,7 +38,9 @@ function App() {
     urgency: 'Medium',
   })
   const [briefingGenerated, setBriefingGenerated] = useState(false)
-  const [copyStatus, setCopyStatus] = useState('Copy summary')
+  const [copyState, setCopyState] = useState<CopyState>('idle')
+
+  const t = ui[language]
 
   const profile = riskProfiles[request.country]
   const result = useMemo(
@@ -57,11 +55,37 @@ function App() {
   )
   const level = riskLevel(result.overallScore)
   const tone = riskTone(result.overallScore)
-  const publicSignalSummary = profile.publicDataSignals
-    .map((signal) => `${signal.source}: ${signal.label} (${signal.level})`)
+  const koreanProfile = language === 'ko' ? koreanProfiles[request.country] : null
+  const localizedSignals = profile.publicDataSignals.map((signal, index) => ({
+    ...signal,
+    ...(koreanProfile?.signals[index] ?? {}),
+  }))
+  const profileSummary = koreanProfile?.summary ?? profile.summary
+  const keyRisks = koreanProfile?.keyRisks ?? profile.keyRisks
+  const recommendedActions =
+    koreanProfile?.recommendedActions ?? profile.recommendedActions
+  const warningSignals = koreanProfile?.warningSignals ?? profile.warningSignals
+  const alternativeStrategy =
+    koreanProfile?.alternativeStrategy ?? profile.alternativeStrategy
+  const publicSignalSummary = localizedSignals
+    .map(
+      (signal) =>
+        `${signal.source}: ${signal.label} (${labels.signalLevel[signal.level][language]})`,
+    )
     .join('; ')
+  const summaryText =
+    language === 'ko'
+      ? `${labels.country[request.country].ko} 공공데이터 기반 AI 리스크 브리핑 — 목적: ${labels.purpose[request.purpose].ko}, 산업: ${labels.industry[request.industry].ko}, 종합 수준: ${labels.riskLevel[level].ko}, 점수: ${result.overallScore}/100. ${profileSummary} 목적별 권고: ${purposeRecommendations[request.purpose].ko} MVP 모의 공공데이터 신호: ${publicSignalSummary}. 핵심 조치: ${recommendedActions.join(' ')}`
+      : `${profile.country} public data-powered AI risk briefing for ${request.purpose.toLowerCase()} in ${request.industry.toLowerCase()}: ${level} risk, score ${result.overallScore}/100. ${profileSummary} Purpose-specific recommendation: ${purposeRecommendations[request.purpose].en} MVP mock public-data signals: ${publicSignalSummary}. Key actions: ${recommendedActions.join(' ')}`
 
-  const summaryText = `${profile.country} public data-powered AI risk briefing for ${request.purpose.toLowerCase()} in ${request.industry.toLowerCase()}: ${level} risk, score ${result.overallScore}/100. ${profile.summary} Purpose-specific recommendation: ${purposeRecommendations[request.purpose]} MVP mock public-data signals: ${publicSignalSummary}. Key actions: ${profile.recommendedActions.join(' ')}`
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
+
+  function changeLanguage(nextLanguage: Language) {
+    setLanguage(nextLanguage)
+    setCopyState('idle')
+  }
 
   function updateRequest<Key extends keyof RiskRequest>(
     key: Key,
@@ -69,7 +93,7 @@ function App() {
   ) {
     setRequest((current) => ({ ...current, [key]: value }))
     setBriefingGenerated(false)
-    setCopyStatus('Copy summary')
+    setCopyState('idle')
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -84,8 +108,8 @@ function App() {
         throw new Error('Clipboard API unavailable')
       }
       await navigator.clipboard.writeText(summaryText)
-      setCopyStatus('Copied')
-      window.setTimeout(() => setCopyStatus('Copy summary'), 1800)
+      setCopyState('copied')
+      window.setTimeout(() => setCopyState('idle'), 1800)
     } catch {
       const textArea = document.createElement('textarea')
       textArea.value = summaryText
@@ -95,23 +119,41 @@ function App() {
       textArea.select()
       const copied = document.execCommand('copy')
       textArea.remove()
-      setCopyStatus(copied ? 'Copied' : 'Copy failed')
+      setCopyState(copied ? 'copied' : 'failed')
       if (copied) {
-        window.setTimeout(() => setCopyStatus('Copy summary'), 1800)
+        window.setTimeout(() => setCopyState('idle'), 1800)
       }
     }
   }
 
   return (
     <main>
-      <nav className="topbar" aria-label="Primary">
+      <nav className="topbar" aria-label={t.primaryNav}>
         <button className="brand" type="button" onClick={() => setStep('landing')}>
           <span className="brand-mark">GB</span>
           <span>Global Bridge</span>
         </button>
         <div className="nav-actions">
+          <div className="language-toggle" aria-label="Language / 언어">
+            <button
+              className={language === 'ko' ? 'active' : ''}
+              type="button"
+              aria-pressed={language === 'ko'}
+              onClick={() => changeLanguage('ko')}
+            >
+              한국어
+            </button>
+            <button
+              className={language === 'en' ? 'active' : ''}
+              type="button"
+              aria-pressed={language === 'en'}
+              onClick={() => changeLanguage('en')}
+            >
+              English
+            </button>
+          </div>
           <button className="ghost-button" type="button" onClick={() => setStep('input')}>
-            Risk check
+            {t.riskCheck}
           </button>
         </div>
       </nav>
@@ -119,53 +161,48 @@ function App() {
       {step === 'landing' && (
         <section className="landing">
           <div className="hero-copy">
-            <span className="eyebrow">Public-data country intelligence</span>
+            <span className="eyebrow">{t.eyebrow}</span>
             <h1>Global Bridge</h1>
             <p className="tagline">
-              Public data-powered AI country risk intelligence
+              {t.tagline}
             </p>
             <p className="intro">
-              Compare market, travel, logistics, health, and partner risks before
-              entering a new country. Global Bridge turns country signals into a
-              practical briefing for small teams that need to move fast without
-              missing critical exposure.
+              {t.intro}
             </p>
             <p className="source-intro">
-              This MVP is designed around public sources including MOFA safety
-              information and travel alerts, KOTRA market news and country
-              information, and Korea Eximbank exchange-rate data.
+              {t.sourceIntro}
             </p>
             <button className="primary-button" type="button" onClick={() => setStep('input')}>
-              Start Risk Check
+              {t.start}
             </button>
           </div>
 
-          <div className="hero-panel" aria-label="Risk intelligence preview">
+          <div className="hero-panel" aria-label={t.preview}>
             <div className="panel-header">
-              <span>Public-data briefing preview</span>
-              <span className="status-dot">MVP mock</span>
+              <span>{t.preview}</span>
+              <span className="status-dot">{t.mock}</span>
             </div>
             <div className="score-ring">
               <span>64</span>
-              <small>risk score</small>
+              <small>{t.riskScore}</small>
             </div>
             <div className="mini-grid">
               <div>
-                <span>Security</span>
-                <strong>High</strong>
+                <span>{t.security}</span>
+                <strong>{t.high}</strong>
               </div>
               <div>
-                <span>Logistics</span>
-                <strong>Watch</strong>
+                <span>{t.logistics}</span>
+                <strong>{t.watch}</strong>
               </div>
               <div>
-                <span>Business</span>
-                <strong>Elevated</strong>
+                <span>{t.business}</span>
+                <strong>{t.elevated}</strong>
               </div>
             </div>
             <div className="signal-list">
-              <span>Mock public-data signals</span>
-              <p>MOFA travel context, KOTRA market news, FX pressure</p>
+              <span>{t.mockSignals}</span>
+              <p>{t.previewSignals}</p>
             </div>
           </div>
         </section>
@@ -174,18 +211,14 @@ function App() {
       {step === 'input' && (
         <section className="form-page">
           <div className="section-heading">
-            <span className="eyebrow">Risk input</span>
-            <h2>Generate a country risk briefing</h2>
-            <p>
-              Select the country, purpose, industry, and urgency. The MVP uses
-              mock public-data signals and transparent scoring adjustments. No
-              live API data is fetched.
-            </p>
+            <span className="eyebrow">{t.riskInput}</span>
+            <h2>{t.formTitle}</h2>
+            <p>{t.formIntro}</p>
           </div>
 
           <form className="risk-form" onSubmit={handleSubmit}>
             <label>
-              <span>Country</span>
+              <span>{t.country}</span>
               <select
                 value={request.country}
                 onChange={(event) =>
@@ -193,13 +226,15 @@ function App() {
                 }
               >
                 {countries.map((country) => (
-                  <option key={country}>{country}</option>
+                  <option key={country} value={country}>
+                    {labels.country[country][language]}
+                  </option>
                 ))}
               </select>
             </label>
 
             <label>
-              <span>Purpose</span>
+              <span>{t.purpose}</span>
               <select
                 value={request.purpose}
                 onChange={(event) =>
@@ -207,13 +242,15 @@ function App() {
                 }
               >
                 {purposes.map((purpose) => (
-                  <option key={purpose}>{purpose}</option>
+                  <option key={purpose} value={purpose}>
+                    {labels.purpose[purpose][language]}
+                  </option>
                 ))}
               </select>
             </label>
 
             <label>
-              <span>Industry</span>
+              <span>{t.industry}</span>
               <select
                 value={request.industry}
                 onChange={(event) =>
@@ -221,13 +258,15 @@ function App() {
                 }
               >
                 {industries.map((industry) => (
-                  <option key={industry}>{industry}</option>
+                  <option key={industry} value={industry}>
+                    {labels.industry[industry][language]}
+                  </option>
                 ))}
               </select>
             </label>
 
             <label>
-              <span>Urgency</span>
+              <span>{t.urgency}</span>
               <select
                 value={request.urgency}
                 onChange={(event) =>
@@ -235,13 +274,15 @@ function App() {
                 }
               >
                 {urgencies.map((urgency) => (
-                  <option key={urgency}>{urgency}</option>
+                  <option key={urgency} value={urgency}>
+                    {labels.urgency[urgency][language]}
+                  </option>
                 ))}
               </select>
             </label>
 
             <button className="primary-button form-submit" type="submit">
-              Generate Risk Briefing
+              {t.generateRisk}
             </button>
           </form>
         </section>
@@ -251,43 +292,49 @@ function App() {
         <section className="dashboard">
           <div className="dashboard-header">
             <div>
-              <span className="eyebrow">{profile.region}</span>
-              <h2>{profile.country} Risk Briefing</h2>
+              <span className="eyebrow">{koreanProfile?.region ?? profile.region}</span>
+              <h2>
+                {labels.country[request.country][language]} {t.briefingSuffix}
+              </h2>
               <p>
-                {request.purpose} · {request.industry} · {request.urgency} urgency
+                {labels.purpose[request.purpose][language]} ·{' '}
+                {labels.industry[request.industry][language]} ·{' '}
+                {labels.urgency[request.urgency][language]} {t.urgencySuffix}
               </p>
             </div>
             <div className="dashboard-actions">
               <button className="ghost-button" type="button" onClick={copySummary}>
-                {copyStatus}
+                {copyState === 'copied'
+                  ? t.copied
+                  : copyState === 'failed'
+                    ? t.copyFailed
+                    : t.copy}
               </button>
               <button
                 className="primary-button"
                 type="button"
                 onClick={() => setBriefingGenerated(true)}
               >
-                Generate briefing
+                {t.generate}
               </button>
             </div>
           </div>
 
           <p className="transparency-note">
-            This MVP uses mock public-data signals to demonstrate how official
-            public data APIs can support business risk briefings. It does not yet
-            fetch live data.
+            {t.transparency}
           </p>
 
           <div className="metric-grid">
             <article className={`metric-card ${tone}`}>
-              <span>Overall risk level</span>
-              <strong>{level}</strong>
+              <span>{t.overallLevel}</span>
+              <strong>{labels.riskLevel[level][language]}</strong>
             </article>
             <article className="metric-card">
-              <span>Overall score</span>
+              <span>{t.overallScore}</span>
               <strong>{result.overallScore}/100</strong>
             </article>
             <article className="metric-card">
-              <span>Urgency adjustment</span>
+              <span>{t.urgencyAdjustment}</span>
               <strong>+{urgencyAdjustments[request.urgency]}</strong>
             </article>
           </div>
@@ -295,14 +342,16 @@ function App() {
           <div className="content-grid">
             <article className="card wide">
               <div className="card-heading">
-                <h3>Risk category scores</h3>
-                <span className={`badge ${tone}`}>{level}</span>
+                <h3>{t.categoryScores}</h3>
+                <span className={`badge ${tone}`}>
+                  {labels.riskLevel[level][language]}
+                </span>
               </div>
               <div className="score-list">
                 {categoryOrder.map((category) => (
                   <div className="score-row" key={category}>
                     <div>
-                      <span>{categoryLabels[category]}</span>
+                      <span>{labels.category[category][language]}</span>
                       <strong>{result.categoryScores[category]}</strong>
                     </div>
                     <div className="bar" aria-hidden="true">
@@ -314,102 +363,101 @@ function App() {
             </article>
 
             <article className="card summary-card">
-              <h3>Country risk summary</h3>
-              <p>{profile.summary}</p>
+              <h3>{t.countrySummary}</h3>
+              <p>{profileSummary}</p>
             </article>
 
             <article className="card">
-              <h3>Key risks</h3>
+              <h3>{t.keyRisks}</h3>
               <ul>
-                {profile.keyRisks.map((risk) => (
+                {keyRisks.map((risk) => (
                   <li key={risk}>{risk}</li>
                 ))}
               </ul>
             </article>
 
             <article className="card">
-              <h3>Recommended actions</h3>
+              <h3>{t.recommended}</h3>
               <ol>
                 <li className="purpose-action">
-                  <strong>{request.purpose}:</strong>{' '}
-                  {purposeRecommendations[request.purpose]}
+                  <strong>{labels.purpose[request.purpose][language]}:</strong>{' '}
+                  {purposeRecommendations[request.purpose][language]}
                 </li>
-                {profile.recommendedActions.map((action) => (
+                {recommendedActions.map((action) => (
                   <li key={action}>{action}</li>
                 ))}
               </ol>
             </article>
 
             <article className="card">
-              <h3>Warning signals</h3>
+              <h3>{t.warningSignals}</h3>
               <ul>
-                {profile.warningSignals.map((signal) => (
+                {warningSignals.map((signal) => (
                   <li key={signal}>{signal}</li>
                 ))}
               </ul>
             </article>
 
             <article className="card">
-              <h3>Alternative strategy</h3>
-              <p>{profile.alternativeStrategy}</p>
+              <h3>{t.alternative}</h3>
+              <p>{alternativeStrategy}</p>
             </article>
 
             <article className="card public-data-card">
               <div className="card-heading public-data-heading">
                 <div>
-                  <h3>Public Data Signals</h3>
-                  <p>Five MVP mock signals structured for future API connections.</p>
+                  <h3>{t.publicSignals}</h3>
+                  <p>{t.publicSignalsIntro}</p>
                 </div>
-                <span className="mock-label">Mock data · not live</span>
+                <span className="mock-label">{t.notLive}</span>
               </div>
               <div className="public-signal-grid">
-                {profile.publicDataSignals.map((signal) => (
+                {localizedSignals.map((signal) => (
                   <section className="public-signal" key={signal.source}>
                     <div className="signal-heading">
                       <span className="signal-source">{signal.source}</span>
                       <span className={`signal-badge ${signal.level}`}>
-                        {signal.level}
+                        {labels.signalLevel[signal.level][language]}
                       </span>
                     </div>
                     <h4>{signal.label}</h4>
                     <p>{signal.description}</p>
-                    <small>Last updated: {signal.lastUpdated}</small>
+                    <small>{t.lastUpdated}: {signal.lastUpdated}</small>
                   </section>
                 ))}
               </div>
             </article>
 
             <article className="card official-links public-data-links">
-              <h3>Official public data sources</h3>
-              <p>Reference links for the official sources this MVP is designed to use.</p>
+              <h3>{t.officialSources}</h3>
+              <p>{t.officialSourcesIntro}</p>
               <div>
-                {officialPublicDataLinks.map((link) => (
+                {officialPublicDataLinks.map((link, index) => (
                   <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
-                    {link.label}
+                    {officialPublicDataLabels[language][index]}
                   </a>
                 ))}
               </div>
             </article>
 
             <article className="card official-links">
-              <h3>Additional country links</h3>
+              <h3>{t.additionalLinks}</h3>
               <div>
-                {profile.officialLinks.map((link) => (
+                {profile.officialLinks.map((link, index) => (
                   <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
-                    {link.label}
+                    {koreanProfile?.officialLinkLabels[index] ?? link.label}
                   </a>
                 ))}
               </div>
             </article>
 
             <article className="card briefing-card">
-              <h3>Generated briefing</h3>
+              <h3>{t.generated}</h3>
               {briefingGenerated ? (
                 <p>{summaryText}</p>
               ) : (
                 <p>
-                  Generate a compact executive briefing that includes the selected
-                  context and mock public-data signal summary.
+                  {t.generatedPlaceholder}
                 </p>
               )}
             </article>
