@@ -57,7 +57,7 @@ export async function fetchPublicRisk(params: {
       headers: { Accept: 'application/json' },
     })
     const data = (await response.json()) as Partial<PublicRiskResult>
-    if (!response.ok || !data.ok) return { ...emptyResult, error: data.error }
+    if (!data.ok) return { ...emptyResult, error: data.error }
     return {
       ok: true,
       signals: data.signals ?? [],

@@ -6,16 +6,8 @@ import {
   countrySearchTerms,
   normalizeMofaItems,
 } from './mofaNormalizer.js'
-import {
-  createFallbackBriefing,
-  generateGroqBriefing,
-  normalizeBriefingInput,
-} from './aiBriefing.js'
-import { aggregatePublicRisk } from './publicRiskAggregator.js'
-import {
-  createFallbackSignals,
-  fallbackCategories,
-} from './publicRiskFallback.js'
+import { buildAiBriefingResponse } from './handlers/aiBriefingHandler.js'
+import { buildPublicRiskResponse } from './handlers/publicRiskHandler.js'
 
 for (const envFile of ['.env.local', '.env']) {
   try {
@@ -123,56 +115,13 @@ app.get('/api/mofa-safety', async (request, response) => {
 })
 
 app.get('/api/public-risk', async (request, response) => {
-  const query = {
-    country: String(request.query.country ?? ''),
-    countryCode: String(request.query.countryCode ?? ''),
-    purpose: String(request.query.purpose ?? ''),
-    industry: String(request.query.industry ?? ''),
-    language: request.query.language === 'en' ? 'en' : 'ko',
-  }
-
-  try {
-    return response.json(await aggregatePublicRisk(query))
-  } catch (error) {
-    console.error('Public risk aggregation failed:', error)
-    const fallbackSignals = createFallbackSignals(
-      query.country,
-      fallbackCategories,
-      query,
-    )
-    return response.json({
-      ok: true,
-      country: query.country,
-      signals: fallbackSignals,
-      failedSources: ['public-risk-aggregator'],
-      missingCategories: fallbackCategories,
-      ksureRiskIndexUsed: false,
-      ksureRiskScore: null,
-      fallback: true,
-      error: {
-        code: 'PUBLIC_RISK_FALLBACK',
-        message: 'Public risk data is unavailable. MVP fallback signals are shown.',
-      },
-    })
-  }
+  const result = await buildPublicRiskResponse(request.query)
+  return response.status(result.statusCode).json(result.body)
 })
 
 app.post('/api/ai-briefing', async (request, response) => {
-  const input = normalizeBriefingInput(request.body)
-  const fallback = createFallbackBriefing(input)
-  const apiKey = process.env.GROQ_API_KEY?.trim()
-
-  if (!apiKey) {
-    return response.json(fallback)
-  }
-
-  try {
-    const briefing = await generateGroqBriefing(input, apiKey)
-    return response.json(briefing)
-  } catch (error) {
-    console.error('Groq briefing generation failed:', error)
-    return response.json(fallback)
-  }
+  const result = await buildAiBriefingResponse(request.body)
+  return response.status(result.statusCode).json(result.body)
 })
 
 app.listen(port, () => {

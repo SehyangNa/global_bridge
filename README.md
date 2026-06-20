@@ -132,6 +132,25 @@ npm run server
 npm run dev:client
 ```
 
+## Deploy to Vercel
+
+The Vite frontend calls same-origin server routes only:
+
+- `GET /api/public-risk`
+- `POST /api/ai-briefing`
+
+Vercel functions in `api/` reuse the same handlers as the local Express server. External Groq and data.go.kr requests run only in those server environments; no API key is included in the browser bundle.
+
+Add these variables in **Vercel Project Settings > Environment Variables**:
+
+```text
+DATA_GO_KR_SERVICE_KEY=your_data_go_kr_service_key
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.1-8b-instant
+```
+
+`DATA_GO_KR_SERVICE_KEY` and `GROQ_API_KEY` are required for live upstream calls. `GROQ_MODEL` is optional and defaults to `llama-3.1-8b-instant`. Do not create `VITE_GROQ_API_KEY` or any other `VITE_` secret variable, because Vite exposes those values to browser code.
+
 ## Quality Checks
 
 ```bash

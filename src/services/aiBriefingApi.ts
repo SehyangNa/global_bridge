@@ -68,6 +68,12 @@ function isBriefing(value: unknown): value is AiBriefing {
   )
 }
 
+function briefingFromError(value: unknown): AiBriefing | null {
+  if (!value || typeof value !== 'object') return null
+  const candidate = value as { briefing?: unknown }
+  return isBriefing(candidate.briefing) ? candidate.briefing : null
+}
+
 export async function generateAiBriefing(
   request: AiBriefingRequest,
 ): Promise<AiBriefing> {
@@ -77,10 +83,12 @@ export async function generateAiBriefing(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     })
-    if (!response.ok) throw new Error(`AI briefing request failed: ${response.status}`)
-
     const data: unknown = await response.json()
-    return isBriefing(data) ? data : clientFallback(request)
+    if (isBriefing(data)) return data
+    const serverFallback = briefingFromError(data)
+    if (serverFallback) return serverFallback
+    if (!response.ok) throw new Error(`AI briefing request failed: ${response.status}`)
+    return clientFallback(request)
   } catch {
     return clientFallback(request)
   }

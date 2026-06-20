@@ -467,6 +467,10 @@ h3 {
   margin: 0 auto;
 }
 
+.dashboard small {
+  font-size: 0.875rem;
+}
+
 .section-heading {
   max-width: 880px;
 }
