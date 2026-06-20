@@ -488,7 +488,7 @@ function App() {
     },
     {
       id: 'fallback',
-      label: language === 'ko' ? 'MVP 보완 신호' : 'MVP fallback',
+      label: language === 'ko' ? 'MVP 모의 데이터' : 'Fallback / MVP mock data',
       signals: displaySignals.filter((item) => item.sourceType === 'fallback'),
     },
   ].filter((group) => group.signals.length > 0)
@@ -875,67 +875,103 @@ function App() {
       {step === 'result' && (
         <section className="dashboard">
           <div className="dashboard-header">
-            <div>
-              <span className="eyebrow">{localizedRegion}</span>
-              <h2>
-                {labels.country[request.country][language]} {t.briefingSuffix}
-              </h2>
-              <p>
-                {labels.purpose[request.purpose][language]} ·{' '}
-                {labels.industry[request.industry][language]} ·{' '}
-                {labels.urgency[request.urgency][language]} {t.urgencySuffix}
-              </p>
-            </div>
-            <div className="dashboard-actions">
-              <button className="ghost-button" type="button" onClick={copySummary}>
-                {copyState === 'copied'
-                  ? t.copied
-                  : copyState === 'failed'
-                    ? t.copyFailed
-                    : t.copy}
-              </button>
-              <button
-                className="primary-button"
-                type="button"
-                disabled={briefingState === 'loading'}
-                onClick={handleGenerateBriefing}
-              >
-                {briefingState === 'loading' ? t.generating : t.generate}
-              </button>
-            </div>
+              <div>
+                <span className="eyebrow">{localizedRegion}</span>
+                <h2>
+                  {labels.country[request.country][language]} {t.riskDashboard}
+                </h2>
+                <p>
+                  {labels.purpose[request.purpose][language]} ·{' '}
+                  {labels.industry[request.industry][language]} ·{' '}
+                  {labels.urgency[request.urgency][language]} {t.urgencySuffix}
+                </p>
+              </div>
+              <div className="dashboard-header-tools">
+                <span
+                  className={`mock-label ${hasLiveData ? 'live' : hasArchivedData ? 'archived' : ''}`}
+                >
+                  {hasLiveData
+                    ? t.livePublicData
+                    : hasArchivedData
+                      ? t.archivedPublicData
+                      : t.mockData}
+                </span>
+                <div className="dashboard-actions">
+                  <button className="ghost-button" type="button" onClick={copySummary}>
+                    {copyState === 'copied'
+                      ? t.copied
+                      : copyState === 'failed'
+                        ? t.copyFailed
+                        : t.copy}
+                  </button>
+                  <button
+                    className="primary-button"
+                    type="button"
+                    disabled={briefingState === 'loading'}
+                    onClick={handleGenerateBriefing}
+                  >
+                    {briefingState === 'loading' ? t.generating : t.generate}
+                  </button>
+                </div>
+              </div>
           </div>
 
           {briefingCard}
 
-          <div className="metric-grid">
-            <article className={`metric-card ${tone}`}>
-              <span>{t.overallLevel}</span>
-              <strong>{labels.riskLevel[level][language]}</strong>
-            </article>
-            <article className="metric-card score-highlight">
-              <span>{t.overallScore}</span>
-              <strong>{result.overallScore}/100</strong>
-            </article>
-            <article className="metric-card">
-              <span>{t.urgencyAdjustment}</span>
-              <strong>+{urgencyAdjustments[request.urgency]}</strong>
-            </article>
-          </div>
-          <p className={`risk-index-note ${publicRisk.ksureRiskIndexUsed ? 'used' : 'fallback'}`}>
-            {publicRisk.ksureRiskIndexUsed ? t.ksureApplied : t.ksureFallback}
-          </p>
-
-          <div className="content-grid">
-            {publicDataCard}
-
-            <article className="card wide">
+          <div className="risk-dashboard-shell">
+            <article className={`card risk-snapshot-card ${tone}`}>
               <div className="card-heading">
-                <h3>{t.categoryScores}</h3>
+                <div>
+                  <span className="dashboard-card-kicker">{t.overallScore}</span>
+                  <h3>{t.overallSnapshot}</h3>
+                </div>
                 <span className={`badge ${tone}`}>
                   {labels.riskLevel[level][language]}
                 </span>
               </div>
-              <div className="score-list">
+              <div className="snapshot-main">
+                <div
+                  className="snapshot-score-ring"
+                  style={{
+                    background: `radial-gradient(circle at center, #123c69 59%, transparent 60%), conic-gradient(#f59e0b 0 ${result.overallScore}%, rgba(255, 255, 255, 0.16) ${result.overallScore}% 100%)`,
+                  }}
+                >
+                  <strong>{result.overallScore}</strong>
+                  <span>{t.riskScore}</span>
+                </div>
+                <div className="snapshot-meta">
+                  <span>{t.overallLevel}</span>
+                  <strong>{labels.riskLevel[level][language]}</strong>
+                  <small>{t.urgencyAdjustment} +{urgencyAdjustments[request.urgency]}</small>
+                  <div className="snapshot-summary">
+                    <strong>{t.countrySummary}</strong>
+                    <p>{profileSummary}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="snapshot-indicators">
+                {(['security', 'logistics', 'business'] as const).map((category) => (
+                  <div key={category}>
+                    <span>{labels.category[category][language]}</span>
+                    <strong>{result.categoryScores[category]}</strong>
+                    <div className="snapshot-bar" aria-hidden="true">
+                      <span style={{ width: `${result.categoryScores[category]}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className={`risk-index-note ${publicRisk.ksureRiskIndexUsed ? 'used' : 'fallback'}`}>
+                {publicRisk.ksureRiskIndexUsed ? t.ksureApplied : t.ksureFallback}
+              </p>
+            </article>
+
+            <div className="dashboard-middle-grid">
+            <article className="card category-dashboard-card">
+              <div className="card-heading">
+                <h3>{t.categoryScores}</h3>
+                <span className={`badge ${tone}`}>{labels.riskLevel[level][language]}</span>
+              </div>
+              <div className="score-list compact-score-list">
                 {categoryOrder.map((category) => (
                   <div className="score-row" key={category}>
                     <div>
@@ -945,85 +981,76 @@ function App() {
                     <div className="bar" aria-hidden="true">
                       <span style={{ width: `${result.categoryScores[category]}%` }} />
                     </div>
-                    <small className="score-context">
-                      <strong>{t.categoryExplanation}:</strong>{' '}
-                      {koreanProfile?.categoryExplanations[category] ?? profile.categoryExplanations[category]}
-                    </small>
                   </div>
                 ))}
               </div>
             </article>
 
-            <article className="card summary-card">
-              <h3>{t.countrySummary}</h3>
-              <p>{profileSummary}</p>
-            </article>
-
-            <article className="card">
-              <h3>{t.keyRisks}</h3>
-              <ul>
-                {keyRisks.map((risk) => (
-                  <li key={risk}>{risk}</li>
-                ))}
-              </ul>
-            </article>
-
-            <article className="card">
-              <h3>{t.recommended}</h3>
-              <ol>
-                <li className="purpose-action">
-                  <strong>{labels.purpose[request.purpose][language]}:</strong>{' '}
-                  {purposeRecommendations[request.purpose][language]}
-                </li>
-                {recommendedActions.map((action) => (
+            <article className="card action-dashboard-card">
+              <span className="dashboard-card-kicker">{labels.purpose[request.purpose][language]}</span>
+              <h3>{t.nowActions}</h3>
+              <ol className="action-list">
+                {uniqueStrings([
+                  purposeRecommendations[request.purpose][language],
+                  ...recommendedActions,
+                ]).slice(0, 3).map((action) => (
                   <li key={action}>{action}</li>
                 ))}
               </ol>
             </article>
 
-            <article className="card">
-              <h3>{t.warningSignals}</h3>
-              <ul>
-                {warningSignals.map((signal) => (
-                  <li key={signal}>{signal}</li>
-                ))}
-              </ul>
-            </article>
-
-            <article className="card">
+            <article className="card strategy-dashboard-card">
+              <span className="dashboard-card-kicker">{t.keyRisks}</span>
               <h3>{t.alternative}</h3>
               <p>{alternativeStrategy}</p>
-            </article>
-
-            <article className="card official-links public-data-links">
-              <h3>{t.officialSources}</h3>
-              <p>{t.officialSourcesIntro}</p>
-              <div>
-                {officialPublicDataLinks.map((link, index) => (
-                  <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
-                    {officialPublicDataLabels[language][index]}
-                  </a>
+              <ul className="key-risk-compact">
+                {keyRisks.slice(0, 2).map((risk) => (
+                  <li key={risk}>{risk}</li>
                 ))}
+              </ul>
+              <div className="warning-signal-list">
+                <strong>{t.warningSignals}</strong>
+                <ul>
+                  {warningSignals.slice(0, 3).map((signal) => (
+                    <li key={signal}>{signal}</li>
+                  ))}
+                </ul>
               </div>
             </article>
-
-            <article className="card official-links">
-              <h3>{t.additionalLinks}</h3>
-              <div>
-                {profile.officialLinks.map((link, index) => (
-                  <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
-                    {koreanProfile?.officialLinkLabels[index] ?? link.label}
-                  </a>
-                ))}
-              </div>
-            </article>
-
+            </div>
           </div>
 
-          <p className="transparency-note">
-            {t.transparency}
-          </p>
-          <p className="scope-note">{t.scopeNote}</p>
+          <div className="dashboard-public-section">{publicDataCard}</div>
+
+          <footer className="source-transparency-footer">
+            <div className="source-link-groups">
+              <section className="official-links public-data-links">
+                <h3>{t.officialSources}</h3>
+                <p>{t.officialSourcesIntro}</p>
+                <div>
+                  {officialPublicDataLinks.map((link, index) => (
+                    <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
+                      {officialPublicDataLabels[language][index]}
+                    </a>
+                  ))}
+                </div>
+              </section>
+              <section className="official-links">
+                <h3>{t.additionalLinks}</h3>
+                <div>
+                  {profile.officialLinks.map((link, index) => (
+                    <a key={link.url} href={link.url} target="_blank" rel="noreferrer">
+                      {koreanProfile?.officialLinkLabels[index] ?? link.label}
+                    </a>
+                  ))}
+                </div>
+              </section>
+            </div>
+            <div className="transparency-footer-notes">
+              <p className="transparency-note">{t.transparency}</p>
+              <p>{t.scopeNote}</p>
+            </div>
+          </footer>
         </section>
       )}
     </main>
