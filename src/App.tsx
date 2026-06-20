@@ -718,29 +718,42 @@ function App() {
 
           <div className="hero-panel" aria-label={t.preview}>
             <div className="panel-header">
-              <span>{t.preview}</span>
+              <span className="panel-title">
+                <span className="panel-mark" aria-hidden="true">GB</span>
+                {t.preview}
+              </span>
               <span className="status-dot">{t.mock}</span>
             </div>
-            <div className="score-ring">
-              <span>64</span>
-              <small>{t.riskScore}</small>
+            <div className="preview-score-block">
+              <div className="score-ring">
+                <span>64</span>
+                <small>{t.riskScore}</small>
+              </div>
+              <div className="preview-score-copy">
+                <span>{t.preview}</span>
+                <strong>64 / 100</strong>
+                <p>{t.previewSignals}</p>
+              </div>
             </div>
             <div className="mini-grid">
               <div>
-                <span>{t.security}</span>
+                <span><i className="indicator-dot high" aria-hidden="true" />{t.security}</span>
                 <strong>{t.high}</strong>
               </div>
               <div>
-                <span>{t.logistics}</span>
+                <span><i className="indicator-dot watch" aria-hidden="true" />{t.logistics}</span>
                 <strong>{t.watch}</strong>
               </div>
               <div>
-                <span>{t.business}</span>
+                <span><i className="indicator-dot elevated" aria-hidden="true" />{t.business}</span>
                 <strong>{t.elevated}</strong>
               </div>
             </div>
             <div className="signal-list">
-              <span>{t.mockSignals}</span>
+              <span className="signal-list-heading">
+                <span>{t.mockSignals}</span>
+                <i aria-hidden="true" />
+              </span>
               <p>{t.previewSignals}</p>
             </div>
           </div>
@@ -899,7 +912,7 @@ function App() {
               <span>{t.overallLevel}</span>
               <strong>{labels.riskLevel[level][language]}</strong>
             </article>
-            <article className="metric-card">
+            <article className="metric-card score-highlight">
               <span>{t.overallScore}</span>
               <strong>{result.overallScore}/100</strong>
             </article>
