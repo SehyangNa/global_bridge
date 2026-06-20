@@ -116,6 +116,30 @@ export function calculateScores(
   }
 }
 
+export function applyKsureRiskAdjustment(
+  result: { categoryScores: RiskScores; overallScore: number },
+  ksureRiskScore: number | null,
+) {
+  if (ksureRiskScore === null || !Number.isFinite(ksureRiskScore)) return result
+  const categoryScores = { ...result.categoryScores }
+  categoryScores.business = capScore(
+    categoryScores.business * 0.75 + ksureRiskScore * 0.25,
+  )
+  const categoryAverage =
+    categoryOrder.reduce((total, category) => total + categoryScores[category], 0) /
+    categoryOrder.length
+  const originalCategoryAverage =
+    categoryOrder.reduce(
+      (total, category) => total + result.categoryScores[category],
+      0,
+    ) / categoryOrder.length
+  const urgencyComponent = result.overallScore - originalCategoryAverage
+  return {
+    categoryScores,
+    overallScore: capScore(categoryAverage + urgencyComponent),
+  }
+}
+
 export function riskLevel(score: number): RiskLevel {
   if (score >= 75) return 'Critical'
   if (score >= 60) return 'High'

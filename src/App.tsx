@@ -17,8 +17,8 @@ import {
   urgencies,
 } from './data/riskProfiles'
 import {
-  fetchMofaSafetyInfo,
-  type MofaSafetyItem,
+  fetchPublicRisk,
+  type AggregatedPublicDataSignal,
 } from './services/publicDataApi'
 import {
   generateAiBriefing,
@@ -28,6 +28,7 @@ import {
 import type { Country, Industry, Purpose, RiskRequest, Urgency } from './types/risk'
 import {
   calculateScores,
+  applyKsureRiskAdjustment,
   categoryOrder,
   riskLevel,
   riskTone,
@@ -37,9 +38,26 @@ import {
 type Step = 'landing' | 'input' | 'result'
 type CopyState = 'idle' | 'copied' | 'failed'
 type BriefingState = 'idle' | 'loading' | 'ready'
-type MofaDataState = {
-  status: 'idle' | 'loading' | 'live' | 'archived' | 'fallback'
-  items: MofaSafetyItem[]
+type PublicRiskState = {
+  status: 'idle' | 'loading' | 'ready' | 'fallback'
+  signals: AggregatedPublicDataSignal[]
+  failedSources: string[]
+  ksureRiskIndexUsed: boolean
+  ksureRiskScore: number | null
+}
+
+const countryCodes: Record<Country, string> = {
+  Kenya: 'KE',
+  Nigeria: 'NG',
+  'South Africa': 'ZA',
+}
+
+const fallbackCategoryByIndex: AggregatedPublicDataSignal['category'][] = [
+  'security', 'travel', 'market', 'business', 'fx',
+]
+
+function uniqueStrings(values: string[]) {
+  return [...new Set(values.filter(Boolean))]
 }
 
 const demoPresets: Array<{ id: string; request: RiskRequest }> = [
@@ -85,15 +103,18 @@ function App() {
   const [aiBriefing, setAiBriefing] = useState<AiBriefing | null>(null)
   const briefingRequestId = useRef(0)
   const [copyState, setCopyState] = useState<CopyState>('idle')
-  const [mofaData, setMofaData] = useState<MofaDataState>({
+  const [publicRisk, setPublicRisk] = useState<PublicRiskState>({
     status: 'idle',
-    items: [],
+    signals: [],
+    failedSources: [],
+    ksureRiskIndexUsed: false,
+    ksureRiskScore: null,
   })
 
   const t = ui[language]
 
   const profile = riskProfiles[request.country]
-  const result = useMemo(
+  const baseResult = useMemo(
     () =>
       calculateScores(
         profile.scores,
@@ -103,54 +124,94 @@ function App() {
       ),
     [profile.scores, request.purpose, request.industry, request.urgency],
   )
+  const result = useMemo(
+    () => applyKsureRiskAdjustment(baseResult, publicRisk.ksureRiskScore),
+    [baseResult, publicRisk.ksureRiskScore],
+  )
   const level = riskLevel(result.overallScore)
   const tone = riskTone(result.overallScore)
   const koreanProfile = language === 'ko' ? koreanProfiles[request.country] : null
-  const localizedSignals = profile.publicDataSignals.map((signal, index) => ({
-    ...signal,
-    ...(koreanProfile?.signals[index] ?? {}),
-  }))
-  const profileSummary = koreanProfile?.summary ?? profile.summary
-  const keyRisks = koreanProfile?.keyRisks ?? profile.keyRisks
-  const recommendedActions =
+  const localizedSignals = useMemo(
+    () =>
+      profile.publicDataSignals.map((signal, index) => ({
+        ...signal,
+        ...(koreanProfile?.signals[index] ?? {}),
+      })),
+    [koreanProfile, profile.publicDataSignals],
+  )
+  const localFallbackSignals = useMemo<AggregatedPublicDataSignal[]>(
+    () =>
+      localizedSignals.map((item, index) => ({
+        source: 'MVP fallback',
+        sourceType: 'fallback',
+        category: fallbackCategoryByIndex[index] ?? 'business',
+        titleKo: koreanProfiles[request.country].signals[index]?.label ?? item.label,
+        titleEn: profile.publicDataSignals[index]?.label ?? item.label,
+        summaryKo:
+          koreanProfiles[request.country].signals[index]?.description ?? item.description,
+        summaryEn: profile.publicDataSignals[index]?.description ?? item.description,
+        level: item.level,
+        status: 'mock',
+        publishedAt: null,
+        url: null,
+        rawSourceName: 'Global Bridge MVP fallback',
+      })),
+    [localizedSignals, profile.publicDataSignals, request.country],
+  )
+  const displaySignals = publicRisk.signals.length
+    ? publicRisk.signals
+    : localFallbackSignals
+  const hasLiveData = displaySignals.some((item) => item.status === 'live')
+  const hasArchivedData = displaySignals.some((item) => item.status === 'archived')
+  const signalTitle = (item: AggregatedPublicDataSignal) =>
+    language === 'ko' ? item.titleKo : item.titleEn
+  const signalDescription = (item: AggregatedPublicDataSignal) =>
+    language === 'ko' ? item.summaryKo : item.summaryEn
+  const baseProfileSummary = koreanProfile?.summary ?? profile.summary
+  const countryInfoSignal = displaySignals.find(
+    (item) => item.sourceType === 'kotra' && item.category === 'business',
+  )
+  const profileSummary = countryInfoSignal
+    ? signalDescription(countryInfoSignal)
+    : baseProfileSummary
+  const baseKeyRisks = koreanProfile?.keyRisks ?? profile.keyRisks
+  const baseRecommendedActions =
     koreanProfile?.recommendedActions ?? profile.recommendedActions
-  const warningSignals = koreanProfile?.warningSignals ?? profile.warningSignals
+  const baseWarningSignals = koreanProfile?.warningSignals ?? profile.warningSignals
   const alternativeStrategy =
     koreanProfile?.alternativeStrategy ?? profile.alternativeStrategy
-  const mofaItems =
-    mofaData.status === 'live' || mofaData.status === 'archived'
-      ? mofaData.items.slice(0, 2)
-      : []
-  const liveMofaItems = mofaData.status === 'live' ? mofaItems : []
-  const archivedMofaItems = mofaData.status === 'archived' ? mofaItems : []
-  const hasLiveMofa = liveMofaItems.length > 0
-  const hasArchivedMofa = archivedMofaItems.length > 0
-  const hasMofaData = hasLiveMofa || hasArchivedMofa
-  const mockSignalsToDisplay = hasMofaData
-    ? localizedSignals.slice(1)
-    : localizedSignals
-  const mockSignalSummary = mockSignalsToDisplay
-    .map(
-      (signal) =>
-        `${signal.source} [${t.mockData}]: ${signal.label}. ${signal.description} (${t.lastUpdated}: ${signal.lastUpdated})`,
+  const keyRisks = uniqueStrings([
+    ...displaySignals
+      .filter((item) => item.level !== 'low' && item.status !== 'mock')
+      .map(signalTitle),
+    ...baseKeyRisks,
+  ]).slice(0, 4)
+  const warningSignals = uniqueStrings([
+    ...displaySignals
+      .filter((item) => ['security', 'travel', 'market'].includes(item.category))
+      .map(signalTitle),
+    ...baseWarningSignals,
+  ]).slice(0, 4)
+  const dataDrivenActions = displaySignals
+    .filter((item) => ['compliance', 'industryRisk', 'security', 'travel'].includes(item.category))
+    .map((item) =>
+      language === 'ko'
+        ? `${signalTitle(item)} 신호를 공식 출처에서 재확인하고 실행 조건에 반영하세요.`
+        : `Recheck the ${signalTitle(item)} signal at its official source and reflect it in execution terms.`,
     )
-    .join('; ')
-  const mofaSignalSummary = mofaItems
+  const recommendedActions = uniqueStrings([
+    ...dataDrivenActions,
+    ...baseRecommendedActions,
+  ]).slice(0, 4)
+  const publicSignalSummary = displaySignals
     .map(
       (item) =>
-        `${language === 'ko' ? '외교부 해외안전정보' : 'MOFA safety information'} [${hasLiveMofa ? t.livePublicData : t.archivedPublicData}]: ${item.title}. ${item.summary} (${t.lastUpdated}: ${item.lastUpdated})`,
+        `${item.source} [${item.status}]: ${signalTitle(item)}. ${signalDescription(item)} (${t.lastUpdated}: ${item.publishedAt ?? '—'})`,
     )
     .join('; ')
-  const publicSignalSummary = [mofaSignalSummary, mockSignalSummary]
-    .filter(Boolean)
-    .join('; ')
-  const signalSummaryLabel = hasMofaData
-    ? language === 'ko'
-      ? `${hasLiveMofa ? '실시간' : '과거'} 외교부 안전정보 및 MVP 모의 공공데이터 신호`
-      : `${hasLiveMofa ? 'Live' : 'Archived'} MOFA safety information and MVP mock public-data signals`
-    : language === 'ko'
-      ? 'MVP 모의 공공데이터 신호'
-      : 'MVP mock public-data signals'
+  const signalSummaryLabel = language === 'ko'
+    ? '정규화된 공공데이터 및 MVP 보완 신호'
+    : 'Normalized public data and MVP supplementary signals'
   const summaryText =
     language === 'ko'
       ? `${labels.country[request.country].ko} 공공데이터 기반 AI 리스크 브리핑 — 목적: ${labels.purpose[request.purpose].ko}, 산업: ${labels.industry[request.industry].ko}, 종합 수준: ${labels.riskLevel[level].ko}, 점수: ${result.overallScore}/100. ${profileSummary} 목적별 권고: ${purposeRecommendations[request.purpose].ko} ${signalSummaryLabel}: ${publicSignalSummary}. 핵심 조치: ${recommendedActions.join(' ')}`
@@ -175,24 +236,92 @@ function App() {
     if (step !== 'result') return
 
     let cancelled = false
-    void fetchMofaSafetyInfo(request.country).then((data) => {
+    const requestId = briefingRequestId.current + 1
+    briefingRequestId.current = requestId
+
+    void fetchPublicRisk({
+      country: request.country,
+      countryCode: countryCodes[request.country],
+      purpose: request.purpose,
+      industry: request.industry,
+      language,
+    }).then(async (data) => {
+      const activeSignals = data.ok && data.signals.length
+        ? data.signals
+        : localFallbackSignals
+      const publicDataSignals: PublicDataEvidence[] = activeSignals.map((item) => ({
+        source: item.source,
+        title: language === 'ko' ? item.titleKo : item.titleEn,
+        summary: language === 'ko' ? item.summaryKo : item.summaryEn,
+        status: item.status,
+        lastUpdated: item.publishedAt ?? '—',
+      }))
+      const adjustedResult = applyKsureRiskAdjustment(
+        baseResult,
+        data.ksureRiskScore,
+      )
+      const adjustedLevel = riskLevel(adjustedResult.overallScore)
+
       if (cancelled) return
-      setMofaData({
-        status: data.items.length > 0 ? data.status : 'fallback',
-        items: data.items,
+      setPublicRisk({
+        status: data.ok ? 'ready' : 'fallback',
+        signals: activeSignals,
+        failedSources: data.failedSources,
+        ksureRiskIndexUsed: data.ksureRiskIndexUsed,
+        ksureRiskScore: data.ksureRiskScore,
       })
+
+      const briefing = await generateAiBriefing({
+        language,
+        country: labels.country[request.country][language],
+        purpose: labels.purpose[request.purpose][language],
+        industry: labels.industry[request.industry][language],
+        urgency: labels.urgency[request.urgency][language],
+        overallRiskScore: adjustedResult.overallScore,
+        riskLevel: labels.riskLevel[adjustedLevel][language],
+        categoryScores: Object.fromEntries(
+          categoryOrder.map((category) => [
+            labels.category[category][language],
+            adjustedResult.categoryScores[category],
+          ]),
+        ),
+        recommendedActions: [
+          purposeRecommendations[request.purpose][language],
+          ...baseRecommendedActions,
+        ],
+        warningSignals: baseWarningSignals,
+        alternativeStrategy,
+        publicDataSignals,
+        failedSources: data.failedSources,
+      })
+
+      if (cancelled || briefingRequestId.current !== requestId) return
+      setAiBriefing(briefing)
+      setBriefingState('ready')
     })
 
     return () => {
       cancelled = true
     }
-  }, [request.country, step])
+  }, [
+    alternativeStrategy,
+    baseRecommendedActions,
+    baseResult,
+    baseWarningSignals,
+    language,
+    localFallbackSignals,
+    request.country,
+    request.industry,
+    request.purpose,
+    request.urgency,
+    step,
+  ])
 
   function changeLanguage(nextLanguage: Language) {
     briefingRequestId.current += 1
     setLanguage(nextLanguage)
     setAiBriefing(null)
-    setBriefingState('idle')
+    setBriefingState(step === 'result' ? 'loading' : 'idle')
     setCopyState('idle')
   }
 
@@ -213,12 +342,20 @@ function App() {
     setAiBriefing(null)
     setBriefingState('idle')
     setCopyState('idle')
-    setMofaData({ status: 'idle', items: [] })
+    setPublicRisk({
+      status: 'idle', signals: [], failedSources: [],
+      ksureRiskIndexUsed: false, ksureRiskScore: null,
+    })
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setMofaData({ status: 'loading', items: [] })
+    setPublicRisk({
+      status: 'loading', signals: [], failedSources: [],
+      ksureRiskIndexUsed: false, ksureRiskScore: null,
+    })
+    setAiBriefing(null)
+    setBriefingState('loading')
     setStep('result')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -268,22 +405,13 @@ function App() {
     setBriefingState('loading')
     setAiBriefing(null)
 
-    const publicDataSignals: PublicDataEvidence[] = [
-      ...mofaItems.map((item) => ({
-        source: language === 'ko' ? '외교부 해외안전정보' : 'MOFA safety information',
-        title: item.title,
-        summary: item.summary,
-        status: (hasLiveMofa ? 'live' : 'archived') as 'live' | 'archived',
-        lastUpdated: item.lastUpdated,
-      })),
-      ...mockSignalsToDisplay.map((signal) => ({
-        source: signal.source,
-        title: signal.label,
-        summary: signal.description,
-        status: 'mock' as const,
-        lastUpdated: signal.lastUpdated,
-      })),
-    ]
+    const publicDataSignals: PublicDataEvidence[] = displaySignals.map((item) => ({
+      source: item.source,
+      title: signalTitle(item),
+      summary: signalDescription(item),
+      status: item.status,
+      lastUpdated: item.publishedAt ?? '—',
+    }))
 
     const briefing = await generateAiBriefing({
       language,
@@ -306,12 +434,150 @@ function App() {
       warningSignals,
       alternativeStrategy,
       publicDataSignals,
+      failedSources: publicRisk.failedSources,
     })
 
     if (briefingRequestId.current !== requestId) return
     setAiBriefing(briefing)
     setBriefingState('ready')
   }
+
+  const briefingCard = (
+    <article className="card briefing-card featured-briefing">
+      <div className="briefing-title-row">
+        <div>
+          <span className="briefing-eyebrow">{t.primaryOutput}</span>
+          <h3>{t.generated}</h3>
+        </div>
+        <div className="briefing-badges">
+          {aiBriefing?.generationMode === 'ai' && (
+            <span className="generation-badge">Groq AI</span>
+          )}
+          <span
+            className={`generation-badge data-mode ${hasLiveMofa ? 'live' : hasArchivedMofa ? 'archived' : 'mock'}`}
+          >
+            {hasLiveMofa
+              ? t.livePublicData
+              : hasArchivedMofa
+                ? t.archivedPublicData
+                : t.mockData}
+          </span>
+          {aiBriefing?.generationMode === 'fallback' && (
+            <span className="generation-badge fallback">{t.templateFallback}</span>
+          )}
+        </div>
+      </div>
+      {briefingState === 'loading' ? (
+        <p className="briefing-loading" aria-live="polite">
+          <span aria-hidden="true" />
+          {t.generatingBriefing}
+        </p>
+      ) : aiBriefing ? (
+        <div className="generated-briefing" aria-live="polite">
+          <section className="briefing-summary">
+            <h4>{t.situationSummary}</h4>
+            <p>{aiBriefing.situationSummary}</p>
+          </section>
+          <div className="briefing-columns">
+            <section>
+              <h4>{t.aiMainRisks}</h4>
+              <ul>
+                {aiBriefing.mainRisks.map((risk) => <li key={risk}>{risk}</li>)}
+              </ul>
+            </section>
+            <section>
+              <h4>{t.aiRecommendedActions}</h4>
+              <ol>
+                {aiBriefing.recommendedActions.map((action) => <li key={action}>{action}</li>)}
+              </ol>
+            </section>
+          </div>
+          <section>
+            <h4>{t.aiAlternativeStrategy}</h4>
+            <p>{aiBriefing.alternativeStrategy}</p>
+          </section>
+          <section className="briefing-source-note">
+            <h4>{t.aiSourceReminder}</h4>
+            <p>{aiBriefing.sourceReminder}</p>
+          </section>
+          <section className="briefing-decision-note">
+            <h4>{t.aiDecisionNote}</h4>
+            <p>{aiBriefing.finalDecisionNote}</p>
+          </section>
+        </div>
+      ) : (
+        <p>{t.generatedPlaceholder}</p>
+      )}
+    </article>
+  )
+
+  const publicDataCard = (
+    <article className="card public-data-card">
+      <div className="card-heading public-data-heading">
+        <div>
+          <h3>{t.publicSignals}</h3>
+          <p>
+            {hasLiveMofa
+              ? t.publicSignalsLiveIntro
+              : hasArchivedMofa
+                ? t.publicSignalsArchivedIntro
+                : t.publicSignalsIntro}
+          </p>
+        </div>
+        <span
+          className={`mock-label ${hasLiveMofa ? 'live' : hasArchivedMofa ? 'archived' : ''}`}
+        >
+          {hasLiveMofa
+            ? t.livePublicData
+            : hasArchivedMofa
+              ? t.archivedPublicData
+              : t.mockData}
+        </span>
+      </div>
+      <div className="data-status-note" aria-live="polite">
+        <p>{t.liveAvailabilityNote}</p>
+        {mofaData.status === 'loading' && <p>{t.liveLoading}</p>}
+        {mofaData.status === 'fallback' && <p>{t.liveFallbackNote}</p>}
+      </div>
+      <div className="public-signal-grid">
+        {mofaItems.map((item) => (
+          <section
+            className={`public-signal ${hasLiveMofa ? 'live-signal' : 'archived-signal'}`}
+            key={`mofa-${item.id || item.title}`}
+          >
+            <div className="signal-heading">
+              <span className="signal-source">
+                {language === 'ko'
+                  ? '외교부 해외안전정보'
+                  : 'MOFA safety information'}
+              </span>
+              <span
+                className={`signal-badge ${hasLiveMofa ? 'live' : 'archived'}`}
+              >
+                {hasLiveMofa ? t.livePublicData : t.archivedPublicData}
+              </span>
+            </div>
+            <h4>{item.title}</h4>
+            {item.summary && <p>{item.summary}</p>}
+            <small>
+              {t.originalKorean} · {t.lastUpdated}: {item.lastUpdated || '—'}
+            </small>
+          </section>
+        ))}
+        {mockSignalsToDisplay.map((signal) => (
+          <section className="public-signal" key={signal.source}>
+            <div className="signal-heading">
+              <span className="signal-source">{signal.source}</span>
+              <span className="signal-badge mock">{t.mockData}</span>
+            </div>
+            <h4>{signal.label}</h4>
+            <p>{signal.description}</p>
+            <small>{t.lastUpdated}: {signal.lastUpdated}</small>
+          </section>
+        ))}
+      </div>
+    </article>
+  )
 
   return (
     <main>
@@ -540,9 +806,7 @@ function App() {
             </div>
           </div>
 
-          <p className="transparency-note">
-            {t.transparency}
-          </p>
+          {briefingCard}
 
           <div className="metric-grid">
             <article className={`metric-card ${tone}`}>
@@ -560,6 +824,8 @@ function App() {
           </div>
 
           <div className="content-grid">
+            {publicDataCard}
+
             <article className="card wide">
               <div className="card-heading">
                 <h3>{t.categoryScores}</h3>
@@ -623,77 +889,6 @@ function App() {
               <p>{alternativeStrategy}</p>
             </article>
 
-            <article className="card public-data-card">
-              <div className="card-heading public-data-heading">
-                <div>
-                  <h3>{t.publicSignals}</h3>
-                  <p>
-                    {hasLiveMofa
-                      ? t.publicSignalsLiveIntro
-                      : hasArchivedMofa
-                        ? t.publicSignalsArchivedIntro
-                      : t.publicSignalsIntro}
-                  </p>
-                </div>
-                <span
-                  className={`mock-label ${hasLiveMofa ? 'live' : hasArchivedMofa ? 'archived' : ''}`}
-                >
-                  {hasLiveMofa
-                    ? t.livePublicData
-                    : hasArchivedMofa
-                      ? t.archivedPublicData
-                      : t.mockData}
-                </span>
-              </div>
-              <div className="data-status-note" aria-live="polite">
-                <p>{t.liveAvailabilityNote}</p>
-                {mofaData.status === 'loading' && <p>{t.liveLoading}</p>}
-                {mofaData.status === 'fallback' && <p>{t.liveFallbackNote}</p>}
-              </div>
-              <div className="public-signal-grid">
-                {mofaItems.map((item) => (
-                  <section
-                    className={`public-signal ${hasLiveMofa ? 'live-signal' : 'archived-signal'}`}
-                    key={`mofa-${item.id || item.title}`}
-                  >
-                    <div className="signal-heading">
-                      <span className="signal-source">
-                        {language === 'ko'
-                          ? '외교부 해외안전정보'
-                          : 'MOFA safety information'}
-                      </span>
-                      <span
-                        className={`signal-badge ${hasLiveMofa ? 'live' : 'archived'}`}
-                      >
-                        {hasLiveMofa
-                          ? t.livePublicData
-                          : t.archivedPublicData}
-                      </span>
-                    </div>
-                    <h4>{item.title}</h4>
-                    {item.summary && <p>{item.summary}</p>}
-                    <small>
-                      {t.originalKorean} · {t.lastUpdated}:{' '}
-                      {item.lastUpdated || '—'}
-                    </small>
-                  </section>
-                ))}
-                {mockSignalsToDisplay.map((signal) => (
-                  <section className="public-signal" key={signal.source}>
-                    <div className="signal-heading">
-                      <span className="signal-source">{signal.source}</span>
-                      <span className="signal-badge mock">
-                        {t.mockData}
-                      </span>
-                    </div>
-                    <h4>{signal.label}</h4>
-                    <p>{signal.description}</p>
-                    <small>{t.lastUpdated}: {signal.lastUpdated}</small>
-                  </section>
-                ))}
-              </div>
-            </article>
-
             <article className="card official-links public-data-links">
               <h3>{t.officialSources}</h3>
               <p>{t.officialSourcesIntro}</p>
@@ -717,60 +912,11 @@ function App() {
               </div>
             </article>
 
-            <article className="card briefing-card">
-              <div className="briefing-title-row">
-                <h3>{t.generated}</h3>
-                {aiBriefing && (
-                  <span className={`generation-badge ${aiBriefing.generationMode}`}>
-                    {aiBriefing.generationMode === 'ai'
-                      ? t.aiGenerated
-                      : t.templateFallback}
-                  </span>
-                )}
-              </div>
-              {briefingState === 'loading' ? (
-                <p className="briefing-loading" aria-live="polite">
-                  <span aria-hidden="true" />
-                  {t.generatingBriefing}
-                </p>
-              ) : aiBriefing ? (
-                <div className="generated-briefing" aria-live="polite">
-                  <section className="briefing-summary">
-                    <h4>{t.situationSummary}</h4>
-                    <p>{aiBriefing.situationSummary}</p>
-                  </section>
-                  <div className="briefing-columns">
-                    <section>
-                      <h4>{t.aiMainRisks}</h4>
-                      <ul>
-                        {aiBriefing.mainRisks.map((risk) => <li key={risk}>{risk}</li>)}
-                      </ul>
-                    </section>
-                    <section>
-                      <h4>{t.aiRecommendedActions}</h4>
-                      <ol>
-                        {aiBriefing.recommendedActions.map((action) => <li key={action}>{action}</li>)}
-                      </ol>
-                    </section>
-                  </div>
-                  <section>
-                    <h4>{t.aiAlternativeStrategy}</h4>
-                    <p>{aiBriefing.alternativeStrategy}</p>
-                  </section>
-                  <section className="briefing-source-note">
-                    <h4>{t.aiSourceReminder}</h4>
-                    <p>{aiBriefing.sourceReminder}</p>
-                  </section>
-                  <section className="briefing-decision-note">
-                    <h4>{t.aiDecisionNote}</h4>
-                    <p>{aiBriefing.finalDecisionNote}</p>
-                  </section>
-                </div>
-              ) : (
-                <p>{t.generatedPlaceholder}</p>
-              )}
-            </article>
           </div>
+
+          <p className="transparency-note">
+            {t.transparency}
+          </p>
         </section>
       )}
     </main>

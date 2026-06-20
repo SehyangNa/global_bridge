@@ -1,65 +1,73 @@
-export type MofaSafetyItem = {
-  id: string
-  title: string
-  summary: string
-  lastUpdated: string
+export type PublicSignalSourceType = 'mofa' | 'kotra' | 'ksure' | 'fallback'
+export type PublicSignalCategory =
+  | 'security'
+  | 'travel'
+  | 'business'
+  | 'market'
+  | 'compliance'
+  | 'fx'
+  | 'industryRisk'
+export type PublicSignalStatus = 'live' | 'archived' | 'mock'
+
+export type AggregatedPublicDataSignal = {
+  source: string
+  sourceType: PublicSignalSourceType
+  category: PublicSignalCategory
+  titleKo: string
+  titleEn: string
+  summaryKo: string
+  summaryEn: string
+  level: 'low' | 'medium' | 'high'
+  status: PublicSignalStatus
+  publishedAt: string | null
+  url: string | null
+  rawSourceName: string
+  riskScore?: number
 }
 
-export type MofaDataStatus = 'live' | 'archived' | 'fallback'
-
-export type MofaSafetyResult = {
+export type PublicRiskResult = {
   ok: boolean
-  live: boolean
-  status: MofaDataStatus
-  items: MofaSafetyItem[]
-  error?: {
-    code: string
-    message: string
-  }
+  signals: AggregatedPublicDataSignal[]
+  failedSources: string[]
+  missingCategories: string[]
+  ksureRiskIndexUsed: boolean
+  ksureRiskScore: number | null
+  error?: { code: string; message: string }
 }
 
-export async function fetchMofaSafetyInfo(
-  country: string,
-): Promise<MofaSafetyResult> {
+const emptyResult: PublicRiskResult = {
+  ok: false,
+  signals: [],
+  failedSources: ['public-risk-proxy'],
+  missingCategories: [],
+  ksureRiskIndexUsed: false,
+  ksureRiskScore: null,
+}
+
+export async function fetchPublicRisk(params: {
+  country: string
+  countryCode: string
+  purpose: string
+  industry: string
+  language: 'ko' | 'en'
+}): Promise<PublicRiskResult> {
   try {
-    const response = await fetch(
-      `/api/mofa-safety?country=${encodeURIComponent(country)}`,
-      { headers: { Accept: 'application/json' } },
-    )
-    const data = (await response.json()) as Partial<MofaSafetyResult>
-
-    if (!response.ok || !data.ok) {
-      return {
-        ok: false,
-        live: false,
-        status: 'fallback',
-        items: [],
-        error: data.error ?? {
-          code: 'PROXY_ERROR',
-          message: 'The public data proxy returned an error.',
-        },
-      }
-    }
-
+    const query = new URLSearchParams(params)
+    const response = await fetch(`/api/public-risk?${query}`, {
+      headers: { Accept: 'application/json' },
+    })
+    const data = (await response.json()) as Partial<PublicRiskResult>
+    if (!response.ok || !data.ok) return { ...emptyResult, error: data.error }
     return {
       ok: true,
-      live: data.status === 'live' && Boolean(data.items?.length),
-      status:
-        data.status === 'live' || data.status === 'archived'
-          ? data.status
-          : 'fallback',
-      items: data.items ?? [],
+      signals: data.signals ?? [],
+      failedSources: data.failedSources ?? [],
+      missingCategories: data.missingCategories ?? [],
+      ksureRiskIndexUsed: Boolean(data.ksureRiskIndexUsed),
+      ksureRiskScore:
+        typeof data.ksureRiskScore === 'number' ? data.ksureRiskScore : null,
     }
   } catch {
-    return {
-      ok: false,
-      live: false,
-      status: 'fallback',
-      items: [],
-      error: {
-        code: 'NETWORK_ERROR',
-        message: 'The public data proxy could not be reached.',
-      },
-    }
+    return emptyResult
   }
 }

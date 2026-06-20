@@ -79,6 +79,7 @@ export function normalizeBriefingInput(body = {}) {
     warningSignals: stringList(body.warningSignals),
     alternativeStrategy: text(body.alternativeStrategy, 800),
     publicDataSignals,
+    failedSources: stringList(body.failedSources, 10, 120),
   }
 }
 
@@ -114,20 +115,6 @@ export function createFallbackBriefing(input) {
   }
 }
 
-function extractOutputText(data) {
-  if (typeof data?.output_text === 'string') return data.output_text
-
-  for (const output of data?.output ?? []) {
-    for (const content of output?.content ?? []) {
-      if (content?.type === 'output_text' && typeof content.text === 'string') {
-        return content.text
-      }
-    }
-  }
-
-  return ''
-}
-
 function isValidBriefing(value) {
   return Boolean(
     value &&
@@ -140,33 +127,35 @@ function isValidBriefing(value) {
   )
 }
 
-export async function generateAiBriefing(input, apiKey) {
-  const apiResponse = await fetch('https://api.openai.com/v1/responses', {
+export async function generateGroqBriefing(input, apiKey) {
+  const apiResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL?.trim() || 'gpt-5.4-mini',
-      instructions: [
-        'You create concise business risk briefings from supplied JSON evidence only.',
-        'Never invent official facts, dates, sources, or country conditions.',
-        'Distinguish live, archived, and mock public-data signals exactly as provided.',
-        'State clearly that mock signals are illustrative and not live official facts.',
-        'Focus recommendations on the supplied purpose and urgency.',
-        `Write every field in ${input.language === 'ko' ? 'Korean' : 'English'}.`,
-      ].join(' '),
-      input: JSON.stringify(input),
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'global_bridge_briefing',
-          strict: true,
-          schema: briefingSchema,
+      model: process.env.GROQ_MODEL?.trim() || 'llama-3.1-8b-instant',
+      messages: [
+        {
+          role: 'system',
+          content: [
+            'You create concise business risk briefings from supplied JSON evidence only.',
+            'Never invent official facts, dates, sources, or country conditions.',
+            'Distinguish live, archived, and mock public-data signals exactly as provided.',
+            'State clearly that mock signals are illustrative and not live official facts.',
+            'Focus on the supplied country, purpose, industry, and urgency.',
+            'Provide practical business actions.',
+            `Write every field in ${input.language === 'ko' ? 'Korean' : 'English'}.`,
+            'Return valid JSON only, with no Markdown or surrounding commentary.',
+            `The required JSON schema is: ${JSON.stringify(briefingSchema)}`,
+          ].join(' '),
         },
-      },
-      max_output_tokens: 1400,
+        { role: 'user', content: JSON.stringify(input) },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.2,
+      max_completion_tokens: 1400,
     }),
     signal: AbortSignal.timeout(20000),
   })
@@ -176,7 +165,7 @@ export async function generateAiBriefing(input, apiKey) {
   }
 
   const data = await apiResponse.json()
-  const outputText = extractOutputText(data)
+  const outputText = data?.choices?.[0]?.message?.content ?? ''
   const briefing = JSON.parse(outputText)
   if (!isValidBriefing(briefing)) {
     throw new Error('AI provider returned an invalid briefing shape.')

@@ -8,9 +8,10 @@ import {
 } from './mofaNormalizer.js'
 import {
   createFallbackBriefing,
-  generateAiBriefing,
+  generateGroqBriefing,
   normalizeBriefingInput,
 } from './aiBriefing.js'
+import { aggregatePublicRisk } from './publicRiskAggregator.js'
 
 for (const envFile of ['.env.local', '.env']) {
   try {
@@ -116,20 +117,42 @@ app.get('/api/mofa-safety', async (request, response) => {
   }
 })
 
+app.get('/api/public-risk', async (request, response) => {
+  const query = {
+    country: String(request.query.country ?? ''),
+    countryCode: String(request.query.countryCode ?? ''),
+    purpose: String(request.query.purpose ?? ''),
+    industry: String(request.query.industry ?? ''),
+    language: request.query.language === 'en' ? 'en' : 'ko',
+  }
+
+  try {
+    return response.json(await aggregatePublicRisk(query))
+  } catch (error) {
+    console.error('Public risk aggregation failed:', error)
+    return response.status(400).json({
+      ok: false,
+      signals: [],
+      failedSources: ['public-risk-aggregator'],
+      error: { code: 'PUBLIC_RISK_ERROR', message: 'Public risk data is unavailable.' },
+    })
+  }
+})
+
 app.post('/api/ai-briefing', async (request, response) => {
   const input = normalizeBriefingInput(request.body)
   const fallback = createFallbackBriefing(input)
-  const apiKey = process.env.OPENAI_API_KEY?.trim()
+  const apiKey = process.env.GROQ_API_KEY?.trim()
 
   if (!apiKey) {
     return response.json(fallback)
   }
 
   try {
-    const briefing = await generateAiBriefing(input, apiKey)
+    const briefing = await generateGroqBriefing(input, apiKey)
     return response.json(briefing)
   } catch (error) {
-    console.error('AI briefing generation failed:', error)
+    console.error('Groq briefing generation failed:', error)
     return response.json(fallback)
   }
 })

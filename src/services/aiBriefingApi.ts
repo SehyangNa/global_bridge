@@ -19,6 +19,7 @@ export type AiBriefingRequest = {
   warningSignals: string[]
   alternativeStrategy: string
   publicDataSignals: PublicDataEvidence[]
+  failedSources: string[]
 }
 
 export type AiBriefing = {
