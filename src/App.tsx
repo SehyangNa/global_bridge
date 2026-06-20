@@ -40,6 +40,7 @@ import {
 type Step = 'landing' | 'input' | 'result'
 type CopyState = 'idle' | 'copied' | 'failed'
 type BriefingState = 'idle' | 'loading' | 'ready'
+type DataCoverageStatus = 'live' | 'archived' | 'mock' | 'unavailable'
 type PublicRiskState = {
   status: 'idle' | 'loading' | 'ready' | 'fallback'
   signals: AggregatedPublicDataSignal[]
@@ -109,6 +110,7 @@ function App() {
   })
   const [briefingState, setBriefingState] = useState<BriefingState>('idle')
   const [isBriefingExpanded, setIsBriefingExpanded] = useState(false)
+  const [expandedPublicSignals, setExpandedPublicSignals] = useState<Record<string, boolean>>({})
   const [aiBriefing, setAiBriefing] = useState<AiBriefing | null>(null)
   const briefingRequestId = useRef(0)
   const [copyState, setCopyState] = useState<CopyState>('idle')
@@ -177,24 +179,69 @@ function App() {
     language === 'ko' ? item.titleKo : item.titleEn
   const signalDescription = (item: AggregatedPublicDataSignal) =>
     language === 'ko' ? item.summaryKo : item.summaryEn
+  const signalKey = (item: AggregatedPublicDataSignal) =>
+    `${item.rawSourceName}-${item.category}-${item.titleKo}`
+  const cleanedSignalSummary = (item: AggregatedPublicDataSignal) => {
+    const cleaned = signalDescription(item)
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&(?:nbsp|amp|lt|gt|quot|apos|#\d+|#x[\da-f]+);?/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+    const meaningfulCharacters = cleaned.match(/[A-Za-z가-힣]/g)?.length ?? 0
+    if (cleaned.length > 0 && meaningfulCharacters >= 12) return cleaned
+
+    const countryName = labels.country[request.country][language]
+    const categoryName = labels.category[
+      item.category === 'travel' || item.category === 'market' ||
+      item.category === 'compliance' || item.category === 'fx' ||
+      item.category === 'industryRisk'
+        ? 'business'
+        : item.category
+    ][language]
+    return language === 'ko'
+      ? `${countryName}와(과) 관련된 ${categoryName} 공공데이터 신호입니다. ${item.source}의 '${signalTitle(item)}' 상세 내용을 확인하고 현재 일정과 목적에 맞게 재확인하세요.`
+      : `This is a ${categoryName.toLowerCase()} public-data signal related to ${countryName}. Review '${signalTitle(item)}' at ${item.source} and verify its relevance to your current plan.`
+  }
   const baseProfileSummary = koreanProfile?.summary ?? profile.summary
-  const countryInfoSignal = displaySignals.find(
-    (item) => item.sourceType === 'kotra' && item.category === 'business',
+  const liveCountryInfoSignal = displaySignals.find(
+    (item) =>
+      item.sourceType === 'kotra' &&
+      item.category === 'business' &&
+      item.status === 'live',
   )
-  const profileSummary = countryInfoSignal
-    ? signalDescription(countryInfoSignal)
-    : baseProfileSummary
+  const highestRiskCategories = [...categoryOrder]
+    .sort((a, b) => profile.scores[b] - profile.scores[a])
+    .slice(0, 2)
+    .map((category) => labels.category[category][language])
+    .join(language === 'ko' ? '·' : ' and ')
+  const fallbackSignalFocus = uniqueStrings(displaySignals.map(signalTitle))
+    .slice(0, 2)
+    .join(language === 'ko' ? ', ' : ' and ')
+  const contextualFallbackSummary = language === 'ko'
+    ? `${baseProfileSummary} ${labels.country[request.country].ko}의 ${labels.purpose[request.purpose].ko} 의사결정에서는 ${labels.industry[request.industry].ko} 산업 특성과 ${highestRiskCategories} 리스크를 우선 검토해야 합니다.${fallbackSignalFocus ? ` 현재 확인할 신호는 ${fallbackSignalFocus}입니다.` : ''} ${labels.urgency[request.urgency].ko} 긴급도에 맞춰 실행하되, 최신 데이터가 부족한 경우 외교부와 KOTRA 출처를 다시 확인하세요.`
+    : `${baseProfileSummary} For ${labels.purpose[request.purpose].en.toLowerCase()} decisions in the ${labels.industry[request.industry].en.toLowerCase()} sector, ${highestRiskCategories.toLowerCase()} risks should be reviewed first.${fallbackSignalFocus ? ` Current signals include ${fallbackSignalFocus}.` : ''} Proceed at ${labels.urgency[request.urgency].en.toLowerCase()} urgency, and recheck MOFA and KOTRA sources when recent data is limited.`
+  const profileSummary = liveCountryInfoSignal
+    ? signalDescription(liveCountryInfoSignal)
+    : contextualFallbackSummary
   const baseKeyRisks = koreanProfile?.keyRisks ?? profile.keyRisks
   const baseRecommendedActions =
     koreanProfile?.recommendedActions ?? profile.recommendedActions
   const baseWarningSignals = koreanProfile?.warningSignals ?? profile.warningSignals
   const alternativeStrategy =
-    koreanProfile?.alternativeStrategy ?? profile.alternativeStrategy
+    koreanProfile?.alternativeStrategy ?? profile.alternativeStrategy ??
+    (language === 'ko'
+      ? '제한된 파일럿으로 시작하고 검증 결과에 따라 단계적으로 확대하세요.'
+      : 'Begin with a limited pilot and expand in stages after verification.')
   const keyRisks = uniqueStrings([
     ...displaySignals
       .filter((item) => item.level !== 'low' && item.status !== 'mock')
       .map(signalTitle),
     ...baseKeyRisks,
+    language === 'ko'
+      ? '최신 공식 정보가 부족한 경우 실행 전 출처별 재확인이 필요합니다.'
+      : 'When current official information is limited, recheck each source before execution.',
   ]).slice(0, 4)
   const warningSignals = uniqueStrings([
     purposeWarningSignals[request.purpose][language],
@@ -202,6 +249,9 @@ function App() {
       .filter((item) => ['security', 'travel', 'market'].includes(item.category))
       .map(signalTitle),
     ...baseWarningSignals,
+    language === 'ko'
+      ? '최신 공공데이터 업데이트 부족'
+      : 'Limited recent public-data updates',
   ]).slice(0, 4)
   const dataDrivenActions = displaySignals
     .filter((item) => ['compliance', 'industryRisk', 'security', 'travel'].includes(item.category))
@@ -214,6 +264,9 @@ function App() {
     industryRecommendations[request.industry][language],
     ...dataDrivenActions,
     ...baseRecommendedActions,
+    language === 'ko'
+      ? '실행 전 외교부·KOTRA 공식 출처의 최신 상태를 확인하세요.'
+      : 'Confirm the latest MOFA and KOTRA source status before execution.',
   ]).slice(0, 4)
   const publicSignalSummary = displaySignals
     .map(
@@ -344,6 +397,7 @@ function App() {
     setBriefingState(step === 'result' ? 'loading' : 'idle')
     setCopyState('idle')
     setIsBriefingExpanded(false)
+    setExpandedPublicSignals({})
   }
 
   function updateRequest<Key extends keyof RiskRequest>(
@@ -356,6 +410,7 @@ function App() {
     setBriefingState('idle')
     setCopyState('idle')
     setIsBriefingExpanded(false)
+    setExpandedPublicSignals({})
   }
 
   function applyPreset(preset: RiskRequest) {
@@ -365,6 +420,7 @@ function App() {
     setBriefingState('idle')
     setCopyState('idle')
     setIsBriefingExpanded(false)
+    setExpandedPublicSignals({})
     setPublicRisk({
       status: 'idle', signals: [], failedSources: [],
       ksureRiskIndexUsed: false, ksureRiskScore: null,
@@ -374,6 +430,7 @@ function App() {
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsBriefingExpanded(false)
+    setExpandedPublicSignals({})
     setPublicRisk({
       status: 'loading', signals: [], failedSources: [],
       ksureRiskIndexUsed: false, ksureRiskScore: null,
@@ -470,28 +527,89 @@ function App() {
     setBriefingState('ready')
   }
 
+  const coverageFor = (
+    directSignals: AggregatedPublicDataSignal[],
+    hasMockFallback: boolean,
+  ): DataCoverageStatus => {
+    if (directSignals.some((item) => item.status === 'live')) return 'live'
+    if (directSignals.some((item) => item.status === 'archived')) return 'archived'
+    if (directSignals.some((item) => item.status === 'mock') || hasMockFallback) return 'mock'
+    return 'unavailable'
+  }
+  const fallbackSignals = displaySignals.filter((item) => item.status === 'mock')
+  const mofaSignals = displaySignals.filter((item) => item.sourceType === 'mofa')
+  const kotraSignals = displaySignals.filter((item) => item.sourceType === 'kotra')
+  const ksureSignals = displaySignals.filter((item) => item.sourceType === 'ksure')
+  const mofaSafetyCoverage = coverageFor(
+    mofaSignals.filter((item) => item.category === 'security'),
+    fallbackSignals.some((item) => item.category === 'security'),
+  )
+  const mofaTravelCoverage = coverageFor(
+    mofaSignals.filter((item) => item.category === 'travel'),
+    fallbackSignals.some((item) => item.category === 'travel'),
+  )
+  const kotraCoverage = coverageFor(
+    kotraSignals,
+    fallbackSignals.some((item) => ['market', 'business', 'compliance'].includes(item.category)),
+  )
+  const ksureCoverage = coverageFor(
+    ksureSignals,
+    fallbackSignals.some((item) => item.category === 'industryRisk'),
+  )
+  const groqCoverage: DataCoverageStatus = aiBriefing?.generationMode === 'ai'
+    ? 'live'
+    : aiBriefing?.generationMode === 'fallback'
+      ? 'mock'
+      : 'unavailable'
+  const coverageLabel = (status: DataCoverageStatus) => ({
+    live: t.coverageLive,
+    archived: t.coverageArchived,
+    mock: t.coverageMock,
+    unavailable: t.coverageUnavailable,
+  })[status]
+  const coverageItems = [
+    { id: 'mofa-safety', label: language === 'ko' ? '외교부 해외안전정보' : 'MOFA safety info', status: mofaSafetyCoverage },
+    { id: 'mofa-travel', label: language === 'ko' ? '외교부 여행경보' : 'MOFA travel alert', status: mofaTravelCoverage },
+    { id: 'kotra', label: 'KOTRA', status: kotraCoverage },
+    { id: 'ksure', label: language === 'ko' ? '한국무역보험공사' : 'K-SURE risk index', status: ksureCoverage },
+    { id: 'groq', label: 'Groq AI', status: groqCoverage },
+  ]
+  const hasLimitedCoverage = coverageItems.some((item) =>
+    ['archived', 'mock', 'unavailable'].includes(item.status),
+  )
+
   const signalGroups = [
     {
       id: 'mofa',
       label: language === 'ko' ? '외교부' : 'MOFA',
-      signals: displaySignals.filter((item) => item.sourceType === 'mofa'),
+      signals: mofaSignals,
+      status: coverageFor(
+        mofaSignals,
+        fallbackSignals.some((item) => ['security', 'travel'].includes(item.category)),
+      ),
     },
     {
       id: 'kotra',
       label: 'KOTRA',
-      signals: displaySignals.filter((item) => item.sourceType === 'kotra'),
+      signals: kotraSignals,
+      status: kotraCoverage,
     },
     {
       id: 'ksure',
       label: language === 'ko' ? '한국무역보험공사' : 'K-SURE',
-      signals: displaySignals.filter((item) => item.sourceType === 'ksure'),
+      signals: ksureSignals,
+      status: ksureCoverage,
     },
     {
       id: 'fallback',
       label: language === 'ko' ? 'MVP 모의 데이터' : 'Fallback / MVP mock data',
       signals: displaySignals.filter((item) => item.sourceType === 'fallback'),
+      status: coverageFor(
+        displaySignals.filter((item) => item.sourceType === 'fallback'),
+        fallbackSignals.length > 0,
+      ),
     },
-  ].filter((group) => group.signals.length > 0)
+  ]
 
   const briefingCard = (
     <article className="card briefing-card featured-briefing">
@@ -518,6 +636,9 @@ function App() {
           )}
         </div>
       </div>
+      {aiBriefing && (aiBriefing.generationMode === 'fallback' || displaySignals.some((item) => item.status === 'mock')) && (
+        <p className="ai-data-disclosure">{t.aiFallbackDisclosure}</p>
+      )}
       {briefingState === 'loading' ? (
         <p className="briefing-loading" aria-live="polite">
           <span aria-hidden="true" />
@@ -617,6 +738,7 @@ function App() {
       </div>
       <div className="data-status-note" aria-live="polite">
         <p>{t.liveAvailabilityNote}</p>
+        {hasLimitedCoverage && <p className="limited-data-disclosure">{t.limitedDataDisclosure}</p>}
         {publicRisk.status === 'loading' && <p>{t.aggregateLoading}</p>}
         {publicRisk.status === 'fallback' && <p>{t.aggregateFallbackNote}</p>}
         {publicRisk.failedSources.length > 0 && (
@@ -628,36 +750,59 @@ function App() {
           <section className="signal-group" key={group.id}>
             <h4>{group.label}</h4>
             <div className="public-signal-grid">
-              {group.signals.map((item) => (
-                <article
-                  className={`public-signal ${item.status === 'live' ? 'live-signal' : item.status === 'archived' ? 'archived-signal' : ''}`}
-                  key={`${item.rawSourceName}-${item.category}-${item.titleKo}`}
-                >
-                  <div className="signal-heading">
-                    <span className="signal-source">{item.source}</span>
-                    <span className={`signal-badge ${item.status}`}>
-                      {item.status === 'live'
-                        ? t.livePublicData
-                        : item.status === 'archived'
-                          ? t.archivedPublicData
-                          : t.mockData}
-                    </span>
-                  </div>
-                  <h4>{signalTitle(item)}</h4>
-                  <p>{signalDescription(item)}</p>
-                  <div className="signal-meta">
-                    <span className={`signal-level ${item.level}`}>
-                      {labels.signalLevel[item.level][language]}
-                    </span>
-                    <small>{t.lastUpdated}: {item.publishedAt ?? '—'}</small>
-                  </div>
-                  {item.url && (
-                    <a href={item.url} target="_blank" rel="noreferrer">
-                      {t.officialSourceLink}
-                    </a>
-                  )}
-                </article>
-              ))}
+              {group.signals.length === 0 ? (
+                <div className="signal-group-empty">
+                  <span className={`coverage-status ${group.status}`}>
+                    {coverageLabel(group.status)}
+                  </span>
+                  <p>{t.sourceFallbackNote}</p>
+                </div>
+              ) : group.signals.map((item) => {
+                const itemKey = signalKey(item)
+                const isExpanded = Boolean(expandedPublicSignals[itemKey])
+                return (
+                  <article
+                    className={`public-signal ${isExpanded ? 'expanded' : 'collapsed'} ${item.status === 'live' ? 'live-signal' : item.status === 'archived' ? 'archived-signal' : ''}`}
+                    key={itemKey}
+                  >
+                    <div className="signal-heading">
+                      <span className="signal-source">{item.source}</span>
+                      <span className={`signal-badge ${item.status}`}>
+                        {item.status === 'live'
+                          ? t.livePublicData
+                          : item.status === 'archived'
+                            ? t.archivedPublicData
+                            : t.mockData}
+                      </span>
+                    </div>
+                    <h4>{signalTitle(item)}</h4>
+                    <p className="signal-summary">{cleanedSignalSummary(item)}</p>
+                    <div className="signal-meta">
+                      <span className={`signal-level ${item.level}`}>
+                        {labels.signalLevel[item.level][language]}
+                      </span>
+                      <small>{t.lastUpdated}: {item.publishedAt ?? '—'}</small>
+                    </div>
+                    <div className="signal-card-actions">
+                      {item.url && (
+                        <a href={item.url} target="_blank" rel="noreferrer">
+                          {t.officialSourceLink}
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        aria-expanded={isExpanded}
+                        onClick={() => setExpandedPublicSignals((current) => ({
+                          ...current,
+                          [itemKey]: !current[itemKey],
+                        }))}
+                      >
+                        {isExpanded ? t.showLess : t.showMore}
+                      </button>
+                    </div>
+                  </article>
+                )
+              })}
             </div>
           </section>
         ))}
@@ -919,6 +1064,23 @@ function App() {
           {briefingCard}
 
           <div className="risk-dashboard-shell">
+            <section className="data-coverage-card" aria-label={t.dataCoverage}>
+              <div className="coverage-heading">
+                <span>{t.dataCoverage}</span>
+                {hasLimitedCoverage && <small>{t.limitedDataDisclosure}</small>}
+              </div>
+              <div className="coverage-items">
+                {coverageItems.map((item) => (
+                  <div key={item.id}>
+                    <span>{item.label}</span>
+                    <strong className={`coverage-status ${item.status}`}>
+                      {coverageLabel(item.status)}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            </section>
+
             <article className={`card risk-snapshot-card ${tone}`}>
               <div className="card-heading">
                 <div>
