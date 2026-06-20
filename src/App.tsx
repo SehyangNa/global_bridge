@@ -760,6 +760,12 @@ function App() {
               ) : group.signals.map((item) => {
                 const itemKey = signalKey(item)
                 const isExpanded = Boolean(expandedPublicSignals[itemKey])
+                const fullSummary = cleanedSignalSummary(item)
+                const previewLimit = language === 'ko' ? 90 : 180
+                const canExpand = fullSummary.length > previewLimit
+                const displayedSummary = isExpanded || !canExpand
+                  ? fullSummary
+                  : `${fullSummary.slice(0, previewLimit).trimEnd()}…`
                 return (
                   <article
                     className={`public-signal ${isExpanded ? 'expanded' : 'collapsed'} ${item.status === 'live' ? 'live-signal' : item.status === 'archived' ? 'archived-signal' : ''}`}
@@ -776,30 +782,34 @@ function App() {
                       </span>
                     </div>
                     <h4>{signalTitle(item)}</h4>
-                    <p className="signal-summary">{cleanedSignalSummary(item)}</p>
+                    <p className="signal-summary">{displayedSummary}</p>
                     <div className="signal-meta">
                       <span className={`signal-level ${item.level}`}>
                         {labels.signalLevel[item.level][language]}
                       </span>
                       <small>{t.lastUpdated}: {item.publishedAt ?? '—'}</small>
                     </div>
-                    <div className="signal-card-actions">
-                      {item.url && (
-                        <a href={item.url} target="_blank" rel="noreferrer">
-                          {t.officialSourceLink}
-                        </a>
-                      )}
-                      <button
-                        type="button"
-                        aria-expanded={isExpanded}
-                        onClick={() => setExpandedPublicSignals((current) => ({
-                          ...current,
-                          [itemKey]: !current[itemKey],
-                        }))}
-                      >
-                        {isExpanded ? t.showLess : t.showMore}
-                      </button>
-                    </div>
+                    {(item.url || canExpand) && (
+                      <div className="signal-card-actions">
+                        {item.url && (
+                          <a href={item.url} target="_blank" rel="noreferrer">
+                            {t.officialSourceLink}
+                          </a>
+                        )}
+                        {canExpand && (
+                          <button
+                            type="button"
+                            aria-expanded={isExpanded}
+                            onClick={() => setExpandedPublicSignals((current) => ({
+                              ...current,
+                              [itemKey]: !current[itemKey],
+                            }))}
+                          >
+                            {isExpanded ? t.showLess : t.showMore}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </article>
                 )
               })}

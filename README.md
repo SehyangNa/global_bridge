@@ -1,109 +1,101 @@
 # Global Bridge
 
-Public data-powered AI country risk intelligence for global business decisions.
+Public-data-powered AI country risk intelligence for international business decisions.
 
-Global Bridge is a polished MVP web app for small businesses, startups, and professionals preparing for international business, travel, sourcing, investment, or partner research. It turns country risk signals into a structured, screenshot-ready briefing with category scores, practical actions, warning signals, and official links.
+Global Bridge is a bilingual Korean/English MVP for small businesses, startups, and professionals preparing for overseas trade, sourcing, investment, partnerships, or business travel. It combines normalized public-data signals, transparent fallback evidence, purpose- and industry-aware risk scoring, and a Groq-generated executive briefing in one dashboard.
 
-## Problem Statement
+## Problem
 
-Cross-border decisions often require reviewing travel advisories, market entry notes, logistics risks, partner concerns, and sector-specific exposure across many disconnected sources. Small teams usually do not have a dedicated geopolitical risk function, so they need a fast way to understand country risk before booking travel, contacting suppliers, signing partners, or entering a market.
+Cross-border decisions require teams to compare travel advisories, market conditions, logistics exposure, certification requirements, partner concerns, and industry risk across disconnected sources. Small teams rarely have a dedicated geopolitical-risk function, so Global Bridge provides a practical first-pass briefing while keeping source coverage and fallback use visible.
 
-Global Bridge demonstrates how an AI-assisted risk intelligence product could make that first risk check easier, clearer, and more actionable.
+## Supported Demo Countries
 
-## Target Users
+- Kenya (`KE`) / 케냐
+- Nigeria (`NG`) / 나이지리아
+- South Africa (`ZA`) / 남아프리카공화국
+- Vietnam (`VN`) / 베트남
+- India (`IN`) / 인도
+- United Arab Emirates (`AE`) / 아랍에미리트
 
-- Small business owners evaluating overseas suppliers, buyers, or distributors
-- Startup founders and operators exploring market entry
-- Professionals preparing for international business travel
-- Consultants, trade advisors, and sourcing teams
-- Non-specialists who need a clear first-pass country risk briefing
+Country aliases and public-data filters are centralized so additional regions can be added without redesigning the product.
 
 ## MVP Features
 
-- Landing page with clear product positioning and call to action
-- Country risk input flow for country, purpose, industry, and urgency
-- Mock country profiles for Kenya, Nigeria, and South Africa
-- Category scores for political, security, logistics, health, and business risk
-- Transparent scoring adjustments based on purpose, industry, and urgency
-- Result dashboard with overall risk level and overall score
-- Country summary, key risks, recommended actions, warning signals, and alternative strategy
-- Official information links for each country profile
-- Copy summary button for quick sharing
-- Generate briefing button for a compact executive-style summary
-- Live MOFA country safety information through a local server-side API proxy
-- Automatic MVP mock-signal fallback when live MOFA data is unavailable
-- No authentication, payments, or database
+- Dashboard-style landing, input, and result experiences
+- Korean/English localization
+- Six country profiles with political, security, logistics, health, and business scores
+- Risk adjustments based on country, purpose, industry, and urgency
+- Demo presets for import, travel, partner research, supply chain, IT partnership, and logistics-hub scenarios
+- Collapsible Groq AI briefing with a server-side template fallback
+- Public-data aggregation through a local Express proxy
+- Source-grouped signals for MOFA, KOTRA, K-SURE, and MVP fallback evidence
+- Live, archived, mock, and unavailable data-coverage indicators
+- Per-signal cleaned summaries with expand/collapse controls
+- Country-specific fallback signals when upstream data is missing
+- Official source links and transparent fallback disclosures
+- Copyable full briefing text
 
-## Demo Scenario
+## Public Data and AI
 
-Use this scenario for a portfolio walkthrough, GitHub demo, or LinkedIn post:
+The server is designed to aggregate and normalize:
 
-1. Open the app and click `Start Risk Check`.
-2. Select `Kenya`.
-3. Select `Business Trip`.
-4. Select `Healthcare`.
-5. Select `High` urgency.
-6. Click `Generate Risk Briefing`.
-7. Review the dashboard for adjusted security, health, and urgency-driven risk.
-8. Click `Generate briefing` or `Copy summary` to share the result.
+- MOFA overseas safety information
+- MOFA travel alerts
+- KOTRA country information, market news, breaking news, and certification information
+- K-SURE country and industry risk information
+- Groq AI briefing generation
 
-## Screenshots
+Public-data credentials and the Groq key remain server-side. Signals published within the latest six months are labeled `live`; older dated signals are labeled `archived`. Missing categories are filled with clearly marked `MVP mock` signals. If the backend or upstream services are unavailable, the frontend continues with local country-profile fallback evidence.
 
-### Landing Page
+## Demo Walkthrough
 
-![Global Bridge landing page](screenshots/landing-page.png)
+1. Open the app and select Korean or English.
+2. Click `Start Risk Check` / `리스크 확인 시작`.
+3. Choose a demo preset or select a country, purpose, industry, and urgency.
+4. Generate the risk briefing.
+5. Review the compact AI summary and expand it for full details.
+6. Check the risk snapshot, category scores, actions, alternative strategy, data coverage, and source-grouped signals.
+7. Expand individual public-data cards or copy the full briefing.
 
-### Kenya Risk Briefing
+Recommended competition scenarios:
 
-![Kenya risk briefing](screenshots/risk-briefing-kenya.png)
-
-### Risk Dashboard
-
-![Global Bridge risk dashboard](screenshots/risk-dashboard.png)
+- Vietnam supply-chain risk
+- India IT partnership
+- UAE logistics-hub review
+- Nigeria business-trip risk
 
 ## Tech Stack
 
-- React
-- TypeScript
+- React 19 and TypeScript
 - Vite
 - Express
-- CSS
-- MOFA country safety information from data.go.kr
-- Local TypeScript mock-data fallback
-- Client-side state management with React hooks
+- Groq Chat Completions API
+- data.go.kr public APIs
+- `fast-xml-parser`
+- CSS dashboard design system
 
 ## Project Structure
 
 ```text
 global-bridge/
 ├── server/
-│   └── index.js
-├── public/
-├── screenshots/
-│   ├── landing-page.png
-│   ├── risk-briefing-kenya.png
-│   └── risk-dashboard.png
+│   ├── sources/                  # Public-data source adapters
+│   ├── aiBriefing.js             # Groq prompt and fallback briefing
+│   ├── publicRiskAggregator.js   # Signal aggregation and fallback fill
+│   └── index.js                  # Express API routes
 ├── src/
-│   ├── assets/
-│   ├── data/
-│   │   └── riskProfiles.ts
-│   ├── services/
-│   │   └── publicDataApi.ts
+│   ├── data/                     # Localization and risk profiles
+│   ├── services/                 # Frontend API clients
 │   ├── types/
-│   │   └── risk.ts
-│   ├── utils/
-│   │   └── riskScoring.ts
-│   ├── App.css
+│   ├── utils/                    # Risk scoring
 │   ├── App.tsx
-│   ├── index.css
-│   └── main.tsx
-├── index.html
+│   └── App.css
+├── public/
 ├── .env.example
-├── package.json
-└── README.md
+└── package.json
 ```
 
-## How To Run Locally
+## Run Locally
 
 Install dependencies:
 
@@ -111,92 +103,73 @@ Install dependencies:
 npm install
 ```
 
-Create a local environment file and add your data.go.kr decoding service key:
+Create the local environment file:
 
 ```bash
 cp .env.example .env.local
 ```
 
+Configure available credentials:
+
 ```text
 DATA_GO_KR_SERVICE_KEY=your_service_key
+GROQ_API_KEY=your_groq_key
+GROQ_MODEL=llama-3.1-8b-instant
 ```
 
-Start the API proxy in one terminal:
-
-```bash
-npm run server
-```
-
-Start Vite in a second terminal:
+Start the API proxy and Vite client together:
 
 ```bash
 npm run dev
 ```
 
-Open the local URL printed by Vite, usually:
+The frontend is normally available at `http://localhost:5173`, with `/api` requests proxied to the local server on port `3001`.
 
-```text
-http://localhost:5173
-```
-
-Create a production build:
+Individual processes can also be started with:
 
 ```bash
-npm run build
+npm run server
+npm run dev:client
 ```
 
-Run lint checks:
+## Quality Checks
 
 ```bash
 npm run lint
+npm run build
 ```
 
-## Risk Scoring Model
+## Risk Scoring
 
-Each country profile includes base scores from `0` to `100` across five categories:
+Each country has non-official MVP base scores from `0` to `100` for political, security, logistics, health, and business risk. Purpose and industry adjust relevant categories, while urgency adds `0`, `5`, or `10` to the overall category average. K-SURE risk data adjusts the business score when a compatible live or archived index is available.
 
-- Political
-- Security
-- Logistics
-- Health
-- Business
-
-The app calculates an adjusted result from four user inputs:
-
-- Country selects the base mock risk profile.
-- Purpose adjusts relevant category scores. For example, import increases logistics and business risk, while business travel increases security and health risk.
-- Industry applies sector-specific category adjustments. For example, healthcare increases health exposure, while raw materials increase logistics exposure.
-- Urgency increases the overall score: low adds `0`, medium adds `5`, and high adds `10`.
-
-Scores are capped at `100`. The overall score is calculated from the adjusted category average plus the urgency adjustment, then mapped to a risk level:
+The resulting level is mapped to:
 
 - `Managed`
 - `Moderate`
 - `High`
 - `Critical`
 
+Scores are decision-support indicators, not official government ratings.
+
 ## Current Limitations
 
-- Uses live data only for MOFA country safety information; all other public-data signals remain MVP mock data
-- Falls back to MVP mock signals when the MOFA key, proxy, or upstream API is unavailable
-- Covers only Kenya, Nigeria, and South Africa
-- Does not persist user inputs or generated briefings
-- Does not include source citations inside the generated briefing text
-- Does not include authentication, payments, user accounts, or team workspaces
-- Does not replace professional legal, security, insurance, medical, or trade advice
+- Coverage depends on upstream API availability, credentials, and source response quality.
+- Some sources may return archived information or no country-specific result.
+- MVP fallback signals and country profiles are illustrative, not live official facts.
+- Generated briefings use only supplied normalized evidence but still require human review.
+- The app does not persist scenarios or provide continuous monitoring.
+- Global Bridge does not replace professional legal, security, insurance, medical, tax, or trade advice.
 
-## Future Roadmap
+## Roadmap
 
-- Add live official advisory and trade data ingestion
-- Add source citations and confidence indicators
-- Add downloadable PDF and shareable briefing links
-- Add country comparison and industry comparison views
-- Add saved briefings and scenario history
-- Add partner due diligence checklists
-- Add risk monitoring alerts for selected countries
-- Add AI-generated narrative briefings with verifiable sources
-- Add organization workspaces for teams and advisors
+- Add country and scenario comparison
+- Add saved and shareable briefings
+- Add downloadable PDF reports
+- Add source-level citations inside AI briefing fields
+- Add scheduled monitoring and risk-change alerts
+- Expand country mappings and regional coverage
 
 ## Disclaimer
 
-Global Bridge is an MVP prototype using live MOFA safety notices when available and mock data for all remaining public-data signals. It is not a comprehensive real-time risk advisory service and should not be used as the sole basis for business, travel, investment, legal, security, health, or compliance decisions. Always verify critical information with official sources and qualified professionals before acting.
+Global Bridge is an MVP decision-support prototype. Always verify material decisions, travel plans, contracts, counterparties, and compliance obligations against current official sources and qualified professional advice.

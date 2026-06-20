@@ -129,7 +129,7 @@ export function normalizeMofaItems(rawItems, country, now = new Date()) {
   const aliases = countryAliases[country] ?? []
   const normalizedAliases = aliases.map((alias) => alias.toLocaleLowerCase())
   const cutoff = new Date(now)
-  cutoff.setUTCMonth(cutoff.getUTCMonth() - 24)
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - 6)
 
   const relevantItems = asArray(rawItems)
     .map((item) => {

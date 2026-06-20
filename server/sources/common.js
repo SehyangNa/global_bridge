@@ -151,7 +151,7 @@ export function statusFromDate(value, now = new Date()) {
   const date = value instanceof Date ? value : parseDate(value)
   if (!date) return 'archived'
   const cutoff = new Date(now)
-  cutoff.setUTCMonth(cutoff.getUTCMonth() - 24)
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - 6)
   return date >= cutoff && date <= now ? 'live' : 'archived'
 }
 
