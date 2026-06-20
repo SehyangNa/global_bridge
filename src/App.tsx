@@ -108,6 +108,7 @@ function App() {
     urgency: 'Medium',
   })
   const [briefingState, setBriefingState] = useState<BriefingState>('idle')
+  const [isBriefingExpanded, setIsBriefingExpanded] = useState(false)
   const [aiBriefing, setAiBriefing] = useState<AiBriefing | null>(null)
   const briefingRequestId = useRef(0)
   const [copyState, setCopyState] = useState<CopyState>('idle')
@@ -342,6 +343,7 @@ function App() {
     setAiBriefing(null)
     setBriefingState(step === 'result' ? 'loading' : 'idle')
     setCopyState('idle')
+    setIsBriefingExpanded(false)
   }
 
   function updateRequest<Key extends keyof RiskRequest>(
@@ -353,6 +355,7 @@ function App() {
     setAiBriefing(null)
     setBriefingState('idle')
     setCopyState('idle')
+    setIsBriefingExpanded(false)
   }
 
   function applyPreset(preset: RiskRequest) {
@@ -361,6 +364,7 @@ function App() {
     setAiBriefing(null)
     setBriefingState('idle')
     setCopyState('idle')
+    setIsBriefingExpanded(false)
     setPublicRisk({
       status: 'idle', signals: [], failedSources: [],
       ksureRiskIndexUsed: false, ksureRiskScore: null,
@@ -369,6 +373,7 @@ function App() {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setIsBriefingExpanded(false)
     setPublicRisk({
       status: 'loading', signals: [], failedSources: [],
       ksureRiskIndexUsed: false, ksureRiskScore: null,
@@ -422,6 +427,7 @@ function App() {
     const requestId = briefingRequestId.current + 1
     briefingRequestId.current = requestId
     setBriefingState('loading')
+    setIsBriefingExpanded(false)
     setAiBriefing(null)
 
     const publicDataSignals: PublicDataEvidence[] = displaySignals.map((item) => ({
@@ -518,37 +524,67 @@ function App() {
           {t.generatingBriefing}
         </p>
       ) : aiBriefing ? (
-        <div className="generated-briefing" aria-live="polite">
-          <section className="briefing-summary">
-            <h4>{t.situationSummary}</h4>
-            <p>{aiBriefing.situationSummary}</p>
-          </section>
-          <div className="briefing-columns">
-            <section>
-              <h4>{t.aiMainRisks}</h4>
-              <ul>
-                {aiBriefing.mainRisks.map((risk) => <li key={risk}>{risk}</li>)}
-              </ul>
-            </section>
-            <section>
-              <h4>{t.aiRecommendedActions}</h4>
-              <ol>
-                {aiBriefing.recommendedActions.map((action) => <li key={action}>{action}</li>)}
-              </ol>
-            </section>
-          </div>
-          <section>
-            <h4>{t.aiAlternativeStrategy}</h4>
-            <p>{aiBriefing.alternativeStrategy}</p>
-          </section>
-          <section className="briefing-source-note">
-            <h4>{t.aiSourceReminder}</h4>
-            <p>{aiBriefing.sourceReminder}</p>
-          </section>
-          <section className="briefing-decision-note">
-            <h4>{t.aiDecisionNote}</h4>
-            <p>{aiBriefing.finalDecisionNote}</p>
-          </section>
+        <div
+          className={`generated-briefing ${isBriefingExpanded ? 'expanded' : 'collapsed'}`}
+          id="ai-briefing-details"
+          aria-live="polite"
+        >
+          {isBriefingExpanded ? (
+            <>
+              <section className="briefing-summary">
+                <h4>{t.situationSummary}</h4>
+                <p>{aiBriefing.situationSummary}</p>
+              </section>
+              <div className="briefing-columns">
+                <section>
+                  <h4>{t.aiMainRisks}</h4>
+                  <ul>
+                    {aiBriefing.mainRisks.map((risk) => <li key={risk}>{risk}</li>)}
+                  </ul>
+                </section>
+                <section>
+                  <h4>{t.aiRecommendedActions}</h4>
+                  <ol>
+                    {aiBriefing.recommendedActions.map((action) => <li key={action}>{action}</li>)}
+                  </ol>
+                </section>
+              </div>
+              <section>
+                <h4>{t.aiAlternativeStrategy}</h4>
+                <p>{aiBriefing.alternativeStrategy}</p>
+              </section>
+              <section className="briefing-source-note">
+                <h4>{t.aiSourceReminder}</h4>
+                <p>{aiBriefing.sourceReminder}</p>
+              </section>
+              <section className="briefing-decision-note">
+                <h4>{t.aiDecisionNote}</h4>
+                <p>{aiBriefing.finalDecisionNote}</p>
+              </section>
+            </>
+          ) : (
+            <div className="briefing-compact-summary">
+              <section className="briefing-summary">
+                <h4>{t.situationSummary}</h4>
+                <p>{aiBriefing.situationSummary}</p>
+              </section>
+              {aiBriefing.finalDecisionNote && (
+                <section className="briefing-decision-note">
+                  <h4>{t.aiDecisionNote}</h4>
+                  <p>{aiBriefing.finalDecisionNote}</p>
+                </section>
+              )}
+            </div>
+          )}
+          <button
+            className="briefing-toggle"
+            type="button"
+            aria-expanded={isBriefingExpanded}
+            aria-controls="ai-briefing-details"
+            onClick={() => setIsBriefingExpanded((expanded) => !expanded)}
+          >
+            {isBriefingExpanded ? t.collapseBriefing : t.expandBriefing}
+          </button>
         </div>
       ) : (
         <p>{t.generatedPlaceholder}</p>

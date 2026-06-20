@@ -140,6 +140,7 @@ export const ui = {
     generating: 'AI 브리핑 생성 중…', generatingBriefing: 'AI 브리핑을 생성하는 중입니다...',
     generationMode: '생성 방식', aiGenerated: 'Groq AI', templateFallback: '기본 브리핑',
     situationSummary: '상황 요약', aiMainRisks: '주요 리스크', aiRecommendedActions: '실행 권고', aiAlternativeStrategy: '대안 전략', aiSourceReminder: '데이터 출처 안내', aiDecisionNote: '최종 의사결정 메모',
+    expandBriefing: '상세 브리핑 펼치기', collapseBriefing: '상세 브리핑 접기',
   },
   en: {
     primaryNav: 'Primary', riskCheck: 'Risk check', eyebrow: 'Public-data country intelligence',
@@ -178,6 +179,7 @@ export const ui = {
     generating: 'Generating AI briefing…', generatingBriefing: 'Generating AI briefing...',
     generationMode: 'Generation mode', aiGenerated: 'Groq AI', templateFallback: 'Template fallback',
     situationSummary: 'Situation summary', aiMainRisks: 'Main risks', aiRecommendedActions: 'Recommended actions', aiAlternativeStrategy: 'Alternative strategy', aiSourceReminder: 'Source reminder', aiDecisionNote: 'Final decision note',
+    expandBriefing: 'Expand detailed briefing', collapseBriefing: 'Collapse detailed briefing',
   },
 }
 
