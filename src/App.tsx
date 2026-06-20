@@ -139,6 +139,7 @@ function App() {
   const level = riskLevel(result.overallScore)
   const tone = riskTone(result.overallScore)
   const koreanProfile = language === 'ko' ? koreanProfiles[request.country] : null
+  const localizedRegion = koreanProfile?.region ?? profile.region
   const localizedSignals = useMemo(
     () =>
       profile.publicDataSignals.map((signal, index) => ({
@@ -286,7 +287,7 @@ function App() {
         countryKey: request.country,
         localizedCountryName: labels.country[request.country][language],
         countryCode: countryCodes[request.country],
-        region: koreanProfile?.region ?? profile.region,
+        region: localizedRegion,
         purpose: labels.purpose[request.purpose][language],
         industry: labels.industry[request.industry][language],
         urgency: labels.urgency[request.urgency][language],
@@ -326,6 +327,7 @@ function App() {
     baseResult,
     baseWarningSignals,
     language,
+    localizedRegion,
     localFallbackSignals,
     request.country,
     request.industry,
@@ -432,7 +434,10 @@ function App() {
 
     const briefing = await generateAiBriefing({
       language,
-      country: labels.country[request.country][language],
+      countryKey: request.country,
+      localizedCountryName: labels.country[request.country][language],
+      countryCode: countryCodes[request.country],
+      region: localizedRegion,
       purpose: labels.purpose[request.purpose][language],
       industry: labels.industry[request.industry][language],
       urgency: labels.urgency[request.urgency][language],
@@ -822,7 +827,7 @@ function App() {
         <section className="dashboard">
           <div className="dashboard-header">
             <div>
-              <span className="eyebrow">{koreanProfile?.region ?? profile.region}</span>
+              <span className="eyebrow">{localizedRegion}</span>
               <h2>
                 {labels.country[request.country][language]} {t.briefingSuffix}
               </h2>
@@ -891,6 +896,10 @@ function App() {
                     <div className="bar" aria-hidden="true">
                       <span style={{ width: `${result.categoryScores[category]}%` }} />
                     </div>
+                    <small className="score-context">
+                      <strong>{t.categoryExplanation}:</strong>{' '}
+                      {koreanProfile?.categoryExplanations[category] ?? profile.categoryExplanations[category]}
+                    </small>
                   </div>
                 ))}
               </div>
@@ -965,6 +974,7 @@ function App() {
           <p className="transparency-note">
             {t.transparency}
           </p>
+          <p className="scope-note">{t.scopeNote}</p>
         </section>
       )}
     </main>

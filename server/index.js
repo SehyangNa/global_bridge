@@ -26,6 +26,7 @@ for (const envFile of ['.env.local', '.env']) {
 }
 
 const app = express()
+export { app }
 const port = Number(process.env.PORT) || 3001
 const mofaEndpoint =
   'https://apis.data.go.kr/1262000/CountrySafetyService/getCountrySafetyList'

@@ -129,7 +129,7 @@ export function combinedText(item) {
   )
 }
 
-export function isCountryRelevant(item, country, assumeConstrained = false) {
+export function isCountryRelevant(item, country) {
   const metadata = countries[country]
   if (!metadata) return false
   const searchable = combinedText(item).toLocaleLowerCase()
@@ -140,7 +140,7 @@ export function isCountryRelevant(item, country, assumeConstrained = false) {
     'country_iso_alp2', 'isoWd2CntCd', 'countryCode', 'country_code',
     'natnCd', 'cntyCd', 'COUNTRY_CODE',
   ], 20).toUpperCase()
-  return matched || countryCode === metadata.code || assumeConstrained
+  return matched || countryCode === metadata.code
 }
 
 export function parseDate(value) {
