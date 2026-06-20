@@ -2,12 +2,18 @@ export const countryAliases = {
   Kenya: ['Kenya', '케냐'],
   Nigeria: ['Nigeria', '나이지리아'],
   'South Africa': ['South Africa', '남아프리카공화국', '남아공'],
+  Vietnam: ['Vietnam', 'Viet Nam', '베트남'],
+  India: ['India', '인도'],
+  'United Arab Emirates': ['United Arab Emirates', 'UAE', '아랍에미리트', '아랍에미리트연합', '두바이'],
 }
 
 export const countrySearchTerms = {
   Kenya: '케냐',
   Nigeria: '나이지리아',
   'South Africa': '남아공',
+  Vietnam: '베트남',
+  India: '인도',
+  'United Arab Emirates': '아랍에미리트',
 }
 
 const namedEntities = {

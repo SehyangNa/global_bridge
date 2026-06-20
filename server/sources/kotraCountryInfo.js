@@ -14,7 +14,7 @@ export async function fetchKotraCountryInfo({ country, countryCode }) {
   return extractItems(data).slice(0, 1).map((item) => signal({
     source: 'KOTRA 국가정보 / Country Information', sourceType: 'kotra',
     category: 'business',
-    titleKo: `${metadata.ko} 비즈니스·시장 환경`,
+    titleKo: `${metadata.nameKo} 비즈니스·시장 환경`,
     titleEn: `${country} business and market environment`,
     summaryKo: combinedText(item), summaryEn: combinedText(item), level: 'medium',
     publishedAt: null, status: 'archived',

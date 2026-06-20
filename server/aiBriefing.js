@@ -68,7 +68,10 @@ export function normalizeBriefingInput(body = {}) {
 
   return {
     language: body.language === 'en' ? 'en' : 'ko',
-    country: text(body.country, 100),
+    countryKey: text(body.countryKey, 100),
+    localizedCountryName: text(body.localizedCountryName, 100),
+    countryCode: text(body.countryCode, 10),
+    region: text(body.region, 100),
     purpose: text(body.purpose, 100),
     industry: text(body.industry, 100),
     urgency: text(body.urgency, 50),
@@ -94,8 +97,8 @@ export function createFallbackBriefing(input) {
 
   return {
     situationSummary: isKorean
-      ? `${input.country}의 ${input.purpose} 목적 리스크는 ${input.riskLevel} 수준이며 종합 점수는 ${input.overallRiskScore}/100입니다. ${input.industry} 산업과 ${input.urgency} 긴급도를 반영한 기본 브리핑입니다.`
-      : `${input.country} has a ${input.riskLevel} risk level for ${input.purpose}, with an overall score of ${input.overallRiskScore}/100. This template briefing reflects the ${input.industry} industry and ${input.urgency} urgency.`,
+      ? `${input.localizedCountryName}의 ${input.purpose} 목적 리스크는 ${input.riskLevel} 수준이며 종합 점수는 ${input.overallRiskScore}/100입니다. ${input.industry} 산업과 ${input.urgency} 긴급도를 반영한 기본 브리핑입니다.`
+      : `${input.localizedCountryName} has a ${input.riskLevel} risk level for ${input.purpose}, with an overall score of ${input.overallRiskScore}/100. This template briefing reflects the ${input.industry} industry and ${input.urgency} urgency.`,
     mainRisks: risks.length > 0
       ? risks
       : [isKorean ? '제공된 리스크 항목을 의사결정 전에 다시 확인하세요.' : 'Review the supplied risk categories before making a decision.'],

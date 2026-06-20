@@ -1,4 +1,10 @@
-export type Country = 'Kenya' | 'Nigeria' | 'South Africa'
+export type Country =
+  | 'Kenya'
+  | 'Nigeria'
+  | 'South Africa'
+  | 'Vietnam'
+  | 'India'
+  | 'United Arab Emirates'
 
 export type Purpose =
   | 'Business Trip'
@@ -43,6 +49,7 @@ export type PublicDataSignal = {
   level: PublicDataSignalLevel
   description: string
   lastUpdated: string
+  category?: 'security' | 'travel' | 'business' | 'market' | 'compliance' | 'fx' | 'industryRisk'
 }
 
 export type RiskProfile = {
@@ -50,6 +57,7 @@ export type RiskProfile = {
   region: string
   summary: string
   scores: RiskScores
+  categoryExplanations: Record<RiskCategory, string>
   keyRisks: string[]
   recommendedActions: string[]
   warningSignals: string[]

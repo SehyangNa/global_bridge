@@ -23,7 +23,7 @@ export async function fetchKsureRiskIndex({ country, countryCode, industry }) {
     'https://apis.data.go.kr/B552696/ksight/riskindex',
     {
       type: 'json', numOfRows: 100, pageNo: 1,
-      countryCode: countryCode || metadata.code, country: metadata.ko, industry,
+      countryCode: countryCode || metadata.code, country: metadata.nameKo, industry,
     },
   )
   return extractItems(data)
@@ -34,7 +34,7 @@ export async function fetchKsureRiskIndex({ country, countryCode, industry }) {
       const riskLabel = pick(item, ['riskGrade', 'risk_grade', 'riGrade', 'grade'], 40)
       return signal({
         source: '한국무역보험공사 / K-SURE', sourceType: 'ksure', category: 'industryRisk',
-        titleKo: `${metadata.ko} ${industry} 업종 위험지수 ${riskLabel}`.trim(),
+        titleKo: `${metadata.nameKo} ${industry} 업종 위험지수 ${riskLabel}`.trim(),
         titleEn: `${country} ${industry} industry risk index ${riskLabel}`.trim(),
         summaryKo: combinedText(item), summaryEn: combinedText(item),
         level: levelFromText(riskLabel || String(riskScore ?? '')),

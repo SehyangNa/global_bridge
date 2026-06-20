@@ -21,7 +21,7 @@ export async function fetchMofaTravelAlert({ country, countryCode }) {
     return signal({
       source: '외교부 여행경보 / MOFA Travel Alert', sourceType: 'mofa',
       category: 'travel',
-      titleKo: `${metadata.ko} 여행경보 ${alarm}단계`,
+      titleKo: `${metadata.nameKo} 여행경보 ${alarm}단계`,
       titleEn: `${country} travel alert level ${alarm}`,
       summaryKo: `${region || '국가·지역별'} 여행경보 단계와 이동 전 행동지침을 확인하세요.`,
       summaryEn: `Check the ${region || 'country and regional'} alert level and guidance before travel.`,

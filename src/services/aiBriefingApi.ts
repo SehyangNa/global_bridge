@@ -8,7 +8,10 @@ export type PublicDataEvidence = {
 
 export type AiBriefingRequest = {
   language: 'ko' | 'en'
-  country: string
+  countryKey: string
+  localizedCountryName: string
+  countryCode: string
+  region: string
   purpose: string
   industry: string
   urgency: string
@@ -36,8 +39,8 @@ function clientFallback(request: AiBriefingRequest): AiBriefing {
   const isKorean = request.language === 'ko'
   return {
     situationSummary: isKorean
-      ? `${request.country}의 ${request.purpose} 목적 리스크는 ${request.riskLevel} 수준이며 종합 점수는 ${request.overallRiskScore}/100입니다. 현재 서버 연결을 사용할 수 없어 기본 브리핑을 표시합니다.`
-      : `${request.country} has a ${request.riskLevel} risk level for ${request.purpose}, with an overall score of ${request.overallRiskScore}/100. A template briefing is shown because the server is unavailable.`,
+      ? `${request.localizedCountryName}의 ${request.purpose} 목적 리스크는 ${request.riskLevel} 수준이며 종합 점수는 ${request.overallRiskScore}/100입니다. 현재 서버 연결을 사용할 수 없어 기본 브리핑을 표시합니다.`
+      : `${request.localizedCountryName} has a ${request.riskLevel} risk level for ${request.purpose}, with an overall score of ${request.overallRiskScore}/100. A template briefing is shown because the server is unavailable.`,
     mainRisks: request.warningSignals.slice(0, 3),
     recommendedActions: request.recommendedActions.slice(0, 3),
     alternativeStrategy: request.alternativeStrategy,

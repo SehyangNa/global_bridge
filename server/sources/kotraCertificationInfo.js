@@ -16,7 +16,7 @@ export async function fetchKotraCertificationInfo({ country, industry }) {
     .filter((item) => isCountryRelevant(item, country))
     .slice(0, 2)
     .map((item) => {
-      const title = titleOf(item) || `${metadata.ko} 해외인증 정보`
+      const title = titleOf(item) || `${metadata.nameKo} 해외인증 정보`
       const body = bodyOf(item)
       return signal({
         source: 'KOTRA 해외인증정보 / Certification', sourceType: 'kotra',

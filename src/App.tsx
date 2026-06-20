@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import {
   koreanProfiles,
+  industryRecommendations,
   labels,
   officialPublicDataLabels,
   purposeRecommendations,
+  purposeWarningSignals,
   ui,
 } from './data/localization'
 import type { Language } from './data/localization'
@@ -50,6 +52,9 @@ const countryCodes: Record<Country, string> = {
   Kenya: 'KE',
   Nigeria: 'NG',
   'South Africa': 'ZA',
+  Vietnam: 'VN',
+  India: 'IN',
+  'United Arab Emirates': 'AE',
 }
 
 const fallbackCategoryByIndex: AggregatedPublicDataSignal['category'][] = [
@@ -88,6 +93,9 @@ const demoPresets: Array<{ id: string; request: RiskRequest }> = [
       urgency: 'Medium',
     },
   },
+  { id: 'vietnamSupplyChain', request: { country: 'Vietnam', purpose: 'Import', industry: 'Raw Materials', urgency: 'Medium' } },
+  { id: 'indiaItPartner', request: { country: 'India', purpose: 'Partner Research', industry: 'IT', urgency: 'Medium' } },
+  { id: 'uaeLogistics', request: { country: 'United Arab Emirates', purpose: 'Investment', industry: 'General', urgency: 'Medium' } },
 ]
 
 function App() {
@@ -144,7 +152,7 @@ function App() {
       localizedSignals.map((item, index) => ({
         source: 'MVP fallback',
         sourceType: 'fallback',
-        category: fallbackCategoryByIndex[index] ?? 'business',
+        category: item.category ?? fallbackCategoryByIndex[index] ?? 'business',
         titleKo: koreanProfiles[request.country].signals[index]?.label ?? item.label,
         titleEn: profile.publicDataSignals[index]?.label ?? item.label,
         summaryKo:
@@ -187,6 +195,7 @@ function App() {
     ...baseKeyRisks,
   ]).slice(0, 4)
   const warningSignals = uniqueStrings([
+    purposeWarningSignals[request.purpose][language],
     ...displaySignals
       .filter((item) => ['security', 'travel', 'market'].includes(item.category))
       .map(signalTitle),
@@ -200,6 +209,7 @@ function App() {
         : `Recheck the ${signalTitle(item)} signal at its official source and reflect it in execution terms.`,
     )
   const recommendedActions = uniqueStrings([
+    industryRecommendations[request.industry][language],
     ...dataDrivenActions,
     ...baseRecommendedActions,
   ]).slice(0, 4)
@@ -273,7 +283,10 @@ function App() {
 
       const briefing = await generateAiBriefing({
         language,
-        country: labels.country[request.country][language],
+        countryKey: request.country,
+        localizedCountryName: labels.country[request.country][language],
+        countryCode: countryCodes[request.country],
+        region: koreanProfile?.region ?? profile.region,
         purpose: labels.purpose[request.purpose][language],
         industry: labels.industry[request.industry][language],
         urgency: labels.urgency[request.urgency][language],
@@ -287,9 +300,13 @@ function App() {
         ),
         recommendedActions: [
           purposeRecommendations[request.purpose][language],
+          industryRecommendations[request.industry][language],
           ...baseRecommendedActions,
         ],
-        warningSignals: baseWarningSignals,
+        warningSignals: [
+          purposeWarningSignals[request.purpose][language],
+          ...baseWarningSignals,
+        ],
         alternativeStrategy,
         publicDataSignals,
         failedSources: data.failedSources,

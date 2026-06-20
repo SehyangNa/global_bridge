@@ -12,6 +12,10 @@ import {
   normalizeBriefingInput,
 } from './aiBriefing.js'
 import { aggregatePublicRisk } from './publicRiskAggregator.js'
+import {
+  createFallbackSignals,
+  fallbackCategories,
+} from './publicRiskFallback.js'
 
 for (const envFile of ['.env.local', '.env']) {
   try {
@@ -130,11 +134,24 @@ app.get('/api/public-risk', async (request, response) => {
     return response.json(await aggregatePublicRisk(query))
   } catch (error) {
     console.error('Public risk aggregation failed:', error)
-    return response.status(400).json({
-      ok: false,
-      signals: [],
+    const fallbackSignals = createFallbackSignals(
+      query.country,
+      fallbackCategories,
+      query,
+    )
+    return response.json({
+      ok: true,
+      country: query.country,
+      signals: fallbackSignals,
       failedSources: ['public-risk-aggregator'],
-      error: { code: 'PUBLIC_RISK_ERROR', message: 'Public risk data is unavailable.' },
+      missingCategories: fallbackCategories,
+      ksureRiskIndexUsed: false,
+      ksureRiskScore: null,
+      fallback: true,
+      error: {
+        code: 'PUBLIC_RISK_FALLBACK',
+        message: 'Public risk data is unavailable. MVP fallback signals are shown.',
+      },
     })
   }
 })

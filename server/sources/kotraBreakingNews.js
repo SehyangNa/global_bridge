@@ -10,7 +10,7 @@ export async function fetchKotraBreakingNews({ country }) {
   if (!metadata) return []
   const data = await fetchData(
     'https://apis.data.go.kr/B410001/shortBreakingNews/shortBreakingNews',
-    { type: 'json', numOfRows: 30, pageNo: 1, search1: metadata.ko },
+    { type: 'json', numOfRows: 30, pageNo: 1, search1: metadata.nameKo },
   )
   return extractItems(data)
     .filter((item) => isCountryRelevant(item, country))

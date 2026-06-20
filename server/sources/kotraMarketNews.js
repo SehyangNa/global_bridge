@@ -10,7 +10,7 @@ export async function fetchKotraMarketNews({ country, industry }) {
   if (!metadata) return []
   const data = await fetchData(
     'https://apis.data.go.kr/B410001/kotra_overseasMarketNews/ovseaMrktNews/ovseaMrktNews',
-    { type: 'json', numOfRows: 20, pageNo: 1, search1: metadata.ko, search2: industry },
+    { type: 'json', numOfRows: 20, pageNo: 1, search1: metadata.nameKo, search2: industry },
   )
   return extractItems(data)
     .filter((item) => isCountryRelevant(item, country, true))

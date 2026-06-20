@@ -8,12 +8,31 @@ const parser = new XMLParser({
 })
 
 export const countries = {
-  Kenya: { code: 'KE', ko: '케냐', aliases: ['Kenya', '케냐'] },
-  Nigeria: { code: 'NG', ko: '나이지리아', aliases: ['Nigeria', '나이지리아'] },
+  Kenya: {
+    code: 'KE', nameKo: '케냐', nameEn: 'Kenya', regionKo: '동아프리카',
+    regionEn: 'East Africa', aliases: ['Kenya', '케냐'],
+  },
+  Nigeria: {
+    code: 'NG', nameKo: '나이지리아', nameEn: 'Nigeria', regionKo: '서아프리카',
+    regionEn: 'West Africa', aliases: ['Nigeria', '나이지리아'],
+  },
   'South Africa': {
-    code: 'ZA',
-    ko: '남아프리카공화국',
+    code: 'ZA', nameKo: '남아프리카공화국', nameEn: 'South Africa',
+    regionKo: '남아프리카', regionEn: 'Southern Africa',
     aliases: ['South Africa', '남아프리카공화국', '남아공'],
+  },
+  Vietnam: {
+    code: 'VN', nameKo: '베트남', nameEn: 'Vietnam', regionKo: '동남아시아',
+    regionEn: 'Southeast Asia', aliases: ['Vietnam', 'Viet Nam', '베트남'],
+  },
+  India: {
+    code: 'IN', nameKo: '인도', nameEn: 'India', regionKo: '남아시아',
+    regionEn: 'South Asia', aliases: ['India', '인도'],
+  },
+  'United Arab Emirates': {
+    code: 'AE', nameKo: '아랍에미리트', nameEn: 'United Arab Emirates',
+    regionKo: '중동', regionEn: 'Middle East',
+    aliases: ['United Arab Emirates', 'UAE', '아랍에미리트', '아랍에미리트연합', '두바이'],
   },
 }
 

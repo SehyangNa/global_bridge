@@ -45,18 +45,62 @@ const templates = {
   },
 }
 
+const countryOverrides = {
+  Kenya: {
+    security: ['도시 시위와 이동 동선 점검', 'Urban demonstrations and route checks'],
+    business: ['파트너 등록·세무 검증', 'Partner registration and tax verification'],
+    compliance: ['통관·케냐 표준 요건 확인', 'Customs and Kenya standards checks'],
+  },
+  Nigeria: {
+    security: ['주별 치안·이동 리스크 점검', 'State-level security and movement checks'],
+    business: ['결제·실소유주 검증', 'Payment and beneficial-owner verification'],
+    compliance: ['수입 허가·품목분류 확인', 'Import permits and classification checks'],
+  },
+  'South Africa': {
+    security: ['도시 이동·화물 보안 점검', 'Urban movement and cargo security checks'],
+    business: ['전력·공급업체 연속성 검증', 'Power and supplier continuity checks'],
+    compliance: ['현지조달·인증 요건 확인', 'Local procurement and certification checks'],
+  },
+  Vietnam: {
+    security: ['출장 동선·교통 리스크 점검', 'Business route and traffic risk checks'],
+    business: ['공급업체 품질·생산역량 검증', 'Supplier quality and capacity verification'],
+    compliance: ['통관·원산지·품목 인증 확인', 'Customs, origin, and product certification checks'],
+  },
+  India: {
+    security: ['도시별 이동·보건 계획 점검', 'City-level movement and health planning'],
+    business: ['IT 파트너 역량·레퍼런스 검증', 'IT partner capability and reference checks'],
+    compliance: ['데이터·세무·계약 요건 확인', 'Data, tax, and contracting checks'],
+  },
+  'United Arab Emirates': {
+    security: ['이동·비상연락 계획 점검', 'Movement and emergency-contact planning'],
+    business: ['물류 파트너·프리존 인가 검증', 'Logistics partner and free-zone licence checks'],
+    compliance: ['재수출·제재·실소유주 확인', 'Re-export, sanctions, and ownership checks'],
+  },
+}
+
+const purposeContext = {
+  Import: ['수입 물류, 통관, 공급자 신뢰성, 결제 조건을 우선 확인하세요.', 'Prioritize import logistics, customs, supplier reliability, and payment terms.'],
+  Export: ['시장 진입, 인증, 규제, 현지 유통 조건을 우선 확인하세요.', 'Prioritize market access, certification, regulation, and local distribution.'],
+  'Business Trip': ['치안, 보건, 현지 이동, 비상 연락망을 우선 확인하세요.', 'Prioritize security, health, local movement, and emergency contacts.'],
+  Investment: ['규제, 정치 리스크, 법률 실사, 파트너 검증을 우선 확인하세요.', 'Prioritize regulation, political risk, legal due diligence, and partner validation.'],
+  'Partner Research': ['법인·레퍼런스를 검증하고 시범 계약으로 이행력을 확인하세요.', 'Verify the company and references, then test delivery through a pilot contract.'],
+}
+
 export const fallbackCategories = Object.keys(templates)
 
-export function createFallbackSignals(country, categories) {
+export function createFallbackSignals(country, categories, context = {}) {
   const metadata = countries[country]
   if (!metadata) return []
   return categories.map((category) => {
     const template = templates[category]
+    const override = countryOverrides[country]?.[category]
+    const purposeNote = purposeContext[context.purpose]
     return signal({
       source: 'MVP fallback', sourceType: 'fallback', category,
-      titleKo: `${metadata.ko}: ${template.titleKo}`,
-      titleEn: `${country}: ${template.titleEn}`,
-      summaryKo: template.summaryKo, summaryEn: template.summaryEn,
+      titleKo: `${metadata.nameKo}: ${override?.[0] ?? template.titleKo}`,
+      titleEn: `${metadata.nameEn}: ${override?.[1] ?? template.titleEn}`,
+      summaryKo: `${template.summaryKo}${purposeNote ? ` ${purposeNote[0]}` : ''}`,
+      summaryEn: `${template.summaryEn}${purposeNote ? ` ${purposeNote[1]}` : ''}`,
       level: template.level, status: 'mock', publishedAt: null,
       rawSourceName: 'Global Bridge MVP fallback',
     })

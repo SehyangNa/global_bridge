@@ -41,7 +41,16 @@ export async function aggregatePublicRisk(query) {
   const missingCategories = fallbackCategories.filter(
     (category) => !liveCategories.has(category),
   )
-  signals.push(...createFallbackSignals(query.country, missingCategories))
+  signals.push(...createFallbackSignals(query.country, missingCategories, query))
+
+  const relevanceByPurpose = {
+    Import: ['market', 'compliance', 'business', 'fx', 'industryRisk', 'security', 'travel'],
+    Export: ['compliance', 'market', 'business', 'fx', 'industryRisk', 'security', 'travel'],
+    'Business Trip': ['security', 'travel', 'business', 'market', 'compliance', 'fx', 'industryRisk'],
+    Investment: ['business', 'market', 'compliance', 'industryRisk', 'fx', 'security', 'travel'],
+    'Partner Research': ['business', 'compliance', 'market', 'industryRisk', 'security', 'travel', 'fx'],
+  }
+  const categoryPriority = relevanceByPurpose[query.purpose] ?? fallbackCategories
 
   const deduplicated = [...new Map(
     signals.map((item) => [
@@ -49,6 +58,9 @@ export async function aggregatePublicRisk(query) {
       item,
     ]),
   ).values()]
+  deduplicated.sort((a, b) =>
+    categoryPriority.indexOf(a.category) - categoryPriority.indexOf(b.category),
+  )
   const ksureSignal = deduplicated.find(
     (item) => item.sourceType === 'ksure' && Number.isFinite(item.riskScore),
   )
