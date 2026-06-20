@@ -442,6 +442,29 @@ function App() {
     setBriefingState('ready')
   }
 
+  const signalGroups = [
+    {
+      id: 'mofa',
+      label: language === 'ko' ? '외교부' : 'MOFA',
+      signals: displaySignals.filter((item) => item.sourceType === 'mofa'),
+    },
+    {
+      id: 'kotra',
+      label: 'KOTRA',
+      signals: displaySignals.filter((item) => item.sourceType === 'kotra'),
+    },
+    {
+      id: 'ksure',
+      label: language === 'ko' ? '한국무역보험공사' : 'K-SURE',
+      signals: displaySignals.filter((item) => item.sourceType === 'ksure'),
+    },
+    {
+      id: 'fallback',
+      label: language === 'ko' ? 'MVP 보완 신호' : 'MVP fallback',
+      signals: displaySignals.filter((item) => item.sourceType === 'fallback'),
+    },
+  ].filter((group) => group.signals.length > 0)
+
   const briefingCard = (
     <article className="card briefing-card featured-briefing">
       <div className="briefing-title-row">
@@ -454,11 +477,11 @@ function App() {
             <span className="generation-badge">Groq AI</span>
           )}
           <span
-            className={`generation-badge data-mode ${hasLiveMofa ? 'live' : hasArchivedMofa ? 'archived' : 'mock'}`}
+            className={`generation-badge data-mode ${hasLiveData ? 'live' : hasArchivedData ? 'archived' : 'mock'}`}
           >
-            {hasLiveMofa
+            {hasLiveData
               ? t.livePublicData
-              : hasArchivedMofa
+              : hasArchivedData
                 ? t.archivedPublicData
                 : t.mockData}
           </span>
@@ -517,62 +540,67 @@ function App() {
         <div>
           <h3>{t.publicSignals}</h3>
           <p>
-            {hasLiveMofa
+            {hasLiveData
               ? t.publicSignalsLiveIntro
-              : hasArchivedMofa
+              : hasArchivedData
                 ? t.publicSignalsArchivedIntro
                 : t.publicSignalsIntro}
           </p>
         </div>
         <span
-          className={`mock-label ${hasLiveMofa ? 'live' : hasArchivedMofa ? 'archived' : ''}`}
+          className={`mock-label ${hasLiveData ? 'live' : hasArchivedData ? 'archived' : ''}`}
         >
-          {hasLiveMofa
+          {hasLiveData
             ? t.livePublicData
-            : hasArchivedMofa
+            : hasArchivedData
               ? t.archivedPublicData
               : t.mockData}
         </span>
       </div>
       <div className="data-status-note" aria-live="polite">
         <p>{t.liveAvailabilityNote}</p>
-        {mofaData.status === 'loading' && <p>{t.liveLoading}</p>}
-        {mofaData.status === 'fallback' && <p>{t.liveFallbackNote}</p>}
+        {publicRisk.status === 'loading' && <p>{t.aggregateLoading}</p>}
+        {publicRisk.status === 'fallback' && <p>{t.aggregateFallbackNote}</p>}
+        {publicRisk.failedSources.length > 0 && (
+          <p>{t.failedSources}: {publicRisk.failedSources.join(', ')}</p>
+        )}
       </div>
-      <div className="public-signal-grid">
-        {mofaItems.map((item) => (
-          <section
-            className={`public-signal ${hasLiveMofa ? 'live-signal' : 'archived-signal'}`}
-            key={`mofa-${item.id || item.title}`}
-          >
-            <div className="signal-heading">
-              <span className="signal-source">
-                {language === 'ko'
-                  ? '외교부 해외안전정보'
-                  : 'MOFA safety information'}
-              </span>
-              <span
-                className={`signal-badge ${hasLiveMofa ? 'live' : 'archived'}`}
-              >
-                {hasLiveMofa ? t.livePublicData : t.archivedPublicData}
-              </span>
+      <div className="public-signal-groups">
+        {signalGroups.map((group) => (
+          <section className="signal-group" key={group.id}>
+            <h4>{group.label}</h4>
+            <div className="public-signal-grid">
+              {group.signals.map((item) => (
+                <article
+                  className={`public-signal ${item.status === 'live' ? 'live-signal' : item.status === 'archived' ? 'archived-signal' : ''}`}
+                  key={`${item.rawSourceName}-${item.category}-${item.titleKo}`}
+                >
+                  <div className="signal-heading">
+                    <span className="signal-source">{item.source}</span>
+                    <span className={`signal-badge ${item.status}`}>
+                      {item.status === 'live'
+                        ? t.livePublicData
+                        : item.status === 'archived'
+                          ? t.archivedPublicData
+                          : t.mockData}
+                    </span>
+                  </div>
+                  <h4>{signalTitle(item)}</h4>
+                  <p>{signalDescription(item)}</p>
+                  <div className="signal-meta">
+                    <span className={`signal-level ${item.level}`}>
+                      {labels.signalLevel[item.level][language]}
+                    </span>
+                    <small>{t.lastUpdated}: {item.publishedAt ?? '—'}</small>
+                  </div>
+                  {item.url && (
+                    <a href={item.url} target="_blank" rel="noreferrer">
+                      {t.officialSourceLink}
+                    </a>
+                  )}
+                </article>
+              ))}
             </div>
-            <h4>{item.title}</h4>
-            {item.summary && <p>{item.summary}</p>}
-            <small>
-              {t.originalKorean} · {t.lastUpdated}: {item.lastUpdated || '—'}
-            </small>
-          </section>
-        ))}
-        {mockSignalsToDisplay.map((signal) => (
-          <section className="public-signal" key={signal.source}>
-            <div className="signal-heading">
-              <span className="signal-source">{signal.source}</span>
-              <span className="signal-badge mock">{t.mockData}</span>
-            </div>
-            <h4>{signal.label}</h4>
-            <p>{signal.description}</p>
-            <small>{t.lastUpdated}: {signal.lastUpdated}</small>
           </section>
         ))}
       </div>
@@ -822,6 +850,9 @@ function App() {
               <strong>+{urgencyAdjustments[request.urgency]}</strong>
             </article>
           </div>
+          <p className={`risk-index-note ${publicRisk.ksureRiskIndexUsed ? 'used' : 'fallback'}`}>
+            {publicRisk.ksureRiskIndexUsed ? t.ksureApplied : t.ksureFallback}
+          </p>
 
           <div className="content-grid">
             {publicDataCard}

@@ -659,6 +659,37 @@ select {
   font-size: 0.86rem;
 }
 
+.risk-index-note {
+  margin-top: 12px;
+  border-left: 3px solid #94a3b8;
+  padding: 8px 12px;
+  color: #475569;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.risk-index-note.used {
+  border-left-color: #0f766e;
+  color: #065f46;
+}
+
+.public-signal-groups {
+  display: grid;
+  gap: 24px;
+}
+
+.signal-group {
+  display: grid;
+  gap: 12px;
+}
+
+.signal-group > h4 {
+  color: #123c69;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .public-signal-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -749,6 +780,50 @@ select {
   padding-top: 14px;
   color: #64748b;
   font-weight: 800;
+}
+
+.signal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.signal-meta small {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.signal-level {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.signal-level.low {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.signal-level.medium {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.signal-level.high {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.public-signal > a {
+  margin-top: 10px;
+  color: #0f766e;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .card p,
