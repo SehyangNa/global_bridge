@@ -43,7 +43,7 @@ main {
   color: #ffffff;
   background: linear-gradient(145deg, #123c69, #0f766e);
   box-shadow: 0 8px 20px rgba(18, 60, 105, 0.22);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .nav-actions {
@@ -69,7 +69,7 @@ main {
   color: var(--muted);
   background: transparent;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   font-weight: 800;
   cursor: pointer;
 }
@@ -146,7 +146,7 @@ select:focus-visible {
   color: #0f766e;
   border: 1px solid #bce8de;
   background: rgba(223, 245, 239, 0.78);
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -294,7 +294,7 @@ h3 {
   border-radius: 9px;
   color: #ccfbf1;
   background: rgba(45, 212, 191, 0.12);
-  font-size: 0.7rem;
+  font-size: 0.875rem;
   letter-spacing: 0.06em;
 }
 
@@ -306,7 +306,7 @@ h3 {
   padding: 6px 9px;
   color: #ccfbf1;
   background: rgba(45, 212, 191, 0.12);
-  font-size: 0.72rem;
+  font-size: 0.875rem;
   text-transform: uppercase;
 }
 
@@ -362,7 +362,7 @@ h3 {
 
 .preview-score-copy > span {
   color: #93c5fd;
-  font-size: 0.72rem;
+  font-size: 0.875rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -376,7 +376,7 @@ h3 {
 
 .preview-score-copy p {
   color: #bfdbfe;
-  font-size: 0.86rem;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -398,7 +398,7 @@ h3 {
 .mini-grid span,
 .signal-list span {
   color: #dbeafe;
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -511,7 +511,7 @@ label > span {
 
 label > small {
   color: #64748b;
-  font-size: 0.84rem;
+  font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.35;
 }
@@ -549,7 +549,7 @@ select:focus {
   display: block;
   margin-top: 9px;
   color: #64748b;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.45;
 }
@@ -582,7 +582,7 @@ select:focus {
 
 .preset-copy p {
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.875rem;
 }
 
 .preset-buttons {
@@ -682,7 +682,7 @@ select:focus {
   display: block;
   margin-bottom: 7px;
   color: #0f766e;
-  font-size: 0.72rem;
+  font-size: 0.875rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -746,7 +746,7 @@ select:focus {
 .snapshot-meta > span,
 .snapshot-meta small {
   color: #bfdbfe;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 800;
 }
 
@@ -774,7 +774,7 @@ select:focus {
   display: block;
   overflow: hidden;
   color: #bfdbfe;
-  font-size: 0.67rem;
+  font-size: 0.875rem;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -806,7 +806,7 @@ select:focus {
 }
 
 .snapshot-summary > strong {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
 }
 
 .snapshot-summary p {
@@ -814,7 +814,7 @@ select:focus {
   overflow: hidden;
   margin-top: 7px;
   color: #d5e6f3;
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -825,7 +825,7 @@ select:focus {
   padding-top: 16px;
   border-left: 0;
   color: #bfdbfe;
-  font-size: 0.72rem;
+  font-size: 0.875rem;
 }
 
 .dashboard-middle-grid {
@@ -878,7 +878,7 @@ select:focus {
   border-radius: 10px;
   color: #ffffff;
   background: #0f766e;
-  font-size: 0.76rem;
+  font-size: 0.875rem;
   font-weight: 900;
   content: counter(actions, decimal-leading-zero);
 }
@@ -890,7 +890,7 @@ select:focus {
 .key-risk-compact {
   gap: 7px;
   margin-top: 14px;
-  font-size: 0.82rem;
+  font-size: 0.875rem;
 }
 
 .warning-signal-list {
@@ -901,13 +901,13 @@ select:focus {
 
 .warning-signal-list > strong {
   color: #9a3412;
-  font-size: 0.78rem;
+  font-size: 0.875rem;
 }
 
 .warning-signal-list ul {
   gap: 7px;
   margin-top: 10px;
-  font-size: 0.82rem;
+  font-size: 0.875rem;
 }
 
 .dashboard-public-section {
@@ -959,7 +959,7 @@ select:focus {
 .transparency-footer-notes > p:last-child {
   max-width: 520px;
   color: #64748b;
-  font-size: 0.76rem;
+  font-size: 0.875rem;
   line-height: 1.5;
   text-align: right;
 }
@@ -1010,7 +1010,7 @@ select:focus {
 
 .coverage-heading > span {
   color: #ffffff;
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1019,7 +1019,7 @@ select:focus {
 .coverage-heading small {
   max-width: 760px;
   color: #bfdbfe;
-  font-size: 0.7rem;
+  font-size: 0.875rem;
   line-height: 1.45;
   text-align: right;
 }
@@ -1044,7 +1044,7 @@ select:focus {
 .coverage-items > div > span {
   overflow: hidden;
   color: #dbeafe;
-  font-size: 0.7rem;
+  font-size: 0.875rem;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1056,7 +1056,7 @@ select:focus {
   padding: 4px 7px;
   color: #475569;
   background: #e2e8f0;
-  font-size: 0.66rem;
+  font-size: 0.875rem;
   font-weight: 900;
   line-height: 1.2;
 }
@@ -1122,7 +1122,7 @@ select:focus {
 .snapshot-score-ring span {
   margin-top: 8px;
   color: #dbeafe;
-  font-size: 0.72rem;
+  font-size: 0.875rem;
   font-weight: 900;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1130,7 +1130,7 @@ select:focus {
 
 .snapshot-main .snapshot-meta > span,
 .snapshot-main .snapshot-meta small {
-  font-size: 0.78rem;
+  font-size: 0.875rem;
 }
 
 .snapshot-main .snapshot-meta > strong {
@@ -1186,7 +1186,7 @@ select:focus {
   padding: 8px 11px;
   color: #475569 !important;
   background: rgba(255, 255, 255, 0.58);
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -1209,7 +1209,7 @@ select:focus {
 .signal-group-empty p {
   margin: 0;
   color: #64748b;
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -1228,7 +1228,7 @@ select:focus {
   max-width: 900px;
   margin: 12px auto 0;
   color: #64748b;
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.55;
   text-align: center;
@@ -1348,7 +1348,7 @@ select:focus {
   border-radius: 999px;
   padding: 6px 10px;
   background: #f1f5f9;
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1415,7 +1415,7 @@ select:focus {
   padding: 6px 10px;
   color: #7c2d12;
   background: #ffedd5;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1445,7 +1445,7 @@ select:focus {
 
 .data-status-note p {
   margin-top: 4px;
-  font-size: 0.86rem;
+  font-size: 0.875rem;
 }
 
 .risk-index-note {
@@ -1453,7 +1453,7 @@ select:focus {
   border-left: 3px solid #94a3b8;
   padding: 8px 12px;
   color: #475569;
-  font-size: 0.84rem;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
@@ -1525,7 +1525,7 @@ select:focus {
 
 .signal-source {
   color: #123c69;
-  font-size: 0.76rem;
+  font-size: 0.875rem;
   font-weight: 900;
   line-height: 1.35;
   text-transform: uppercase;
@@ -1535,7 +1535,7 @@ select:focus {
   flex: 0 0 auto;
   border-radius: 999px;
   padding: 4px 8px;
-  font-size: 0.7rem;
+  font-size: 0.875rem;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1595,7 +1595,7 @@ select:focus {
 .signal-level {
   border-radius: 999px;
   padding: 4px 8px;
-  font-size: 0.7rem;
+  font-size: 0.875rem;
   font-weight: 900;
 }
 
@@ -1624,7 +1624,7 @@ select:focus {
 
 .signal-card-actions a {
   color: #0f766e;
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   font-weight: 800;
   text-decoration: none;
 }
@@ -1638,7 +1638,7 @@ select:focus {
   color: #334155;
   background: #ffffff;
   font: inherit;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 800;
   cursor: pointer;
 }
@@ -1733,7 +1733,7 @@ ol {
 
 .briefing-eyebrow {
   color: #0f766e;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1751,7 +1751,7 @@ ol {
   padding: 6px 10px;
   color: #065f46;
   background: #d1fae5;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1836,7 +1836,7 @@ ol {
   color: #0f5f58;
   background: #ffffff;
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.875rem;
   font-weight: 800;
   cursor: pointer;
 }
@@ -1950,7 +1950,7 @@ ol {
 
   .language-toggle button {
     padding-inline: 8px;
-    font-size: 0.76rem;
+    font-size: 0.875rem;
   }
 
   .nav-actions > .ghost-button {
@@ -2009,11 +2009,11 @@ ol {
   }
 
   .mini-grid span {
-    font-size: 0.67rem;
+    font-size: 0.875rem;
   }
 
   .mini-grid strong {
-    font-size: 0.86rem;
+    font-size: 0.875rem;
   }
 
   .dashboard-actions,
