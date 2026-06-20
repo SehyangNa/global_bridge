@@ -1,6 +1,16 @@
 import { loadEnvFile } from 'node:process'
 import express from 'express'
 import { XMLParser } from 'fast-xml-parser'
+import {
+  cleanText,
+  countrySearchTerms,
+  normalizeMofaItems,
+} from './mofaNormalizer.js'
+import {
+  createFallbackBriefing,
+  generateAiBriefing,
+  normalizeBriefingInput,
+} from './aiBriefing.js'
 
 for (const envFile of ['.env.local', '.env']) {
   try {
@@ -14,16 +24,13 @@ const app = express()
 const port = Number(process.env.PORT) || 3001
 const mofaEndpoint =
   'https://apis.data.go.kr/1262000/CountrySafetyService/getCountrySafetyList'
-const countrySearchTerms = {
-  Kenya: '케냐',
-  Nigeria: '나이지리아',
-  'South Africa': '남아공',
-}
 const parser = new XMLParser({
   ignoreAttributes: false,
   parseTagValue: false,
   trimValues: true,
 })
+
+app.use(express.json({ limit: '100kb' }))
 
 function decodeServiceKey(serviceKey) {
   try {
@@ -31,24 +38,6 @@ function decodeServiceKey(serviceKey) {
   } catch {
     return serviceKey
   }
-}
-
-function normalizeText(value) {
-  return String(value ?? '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function asArray(value) {
-  if (!value) return []
-  return Array.isArray(value) ? value : [value]
 }
 
 function errorResponse(code, message) {
@@ -79,7 +68,7 @@ app.get('/api/mofa-safety', async (request, response) => {
 
   const url = new URL(mofaEndpoint)
   url.searchParams.set('serviceKey', decodeServiceKey(serviceKey))
-  url.searchParams.set('numOfRows', '5')
+  url.searchParams.set('numOfRows', '50')
   url.searchParams.set('pageNo', '1')
   url.searchParams.set('title', searchTerm)
 
@@ -98,26 +87,23 @@ app.get('/api/mofa-safety', async (request, response) => {
     const apiResult = parsed?.response
     const resultCode = String(apiResult?.header?.resultCode ?? '')
 
-    if (resultCode && resultCode !== '00') {
+    if (resultCode && resultCode !== '00' && resultCode !== '0') {
       throw new Error(
-        normalizeText(apiResult?.header?.resultMsg) || 'MOFA API returned an error.',
+        cleanText(apiResult?.header?.resultMsg) || 'MOFA API returned an error.',
       )
     }
 
-    const items = asArray(apiResult?.body?.items?.item)
-      .map((item) => ({
-        id: String(item.id ?? ''),
-        countryName: normalizeText(item.countryName),
-        countryEnName: normalizeText(item.countryEnName),
-        title: normalizeText(item.title),
-        description: normalizeText(item.content).slice(0, 360),
-        lastUpdated: normalizeText(item.wrtDt),
-      }))
-      .filter((item) => item.title || item.description)
+    const { recent, archived } = normalizeMofaItems(
+      apiResult?.body?.items?.item,
+      country,
+    )
+    const status = recent.length > 0 ? 'live' : archived.length > 0 ? 'archived' : 'fallback'
+    const items = (recent.length > 0 ? recent : archived).slice(0, 2)
 
     return response.json({
       ok: true,
-      live: items.length > 0,
+      live: status === 'live',
+      status,
       source: 'MOFA country safety information',
       country,
       items,
@@ -127,6 +113,24 @@ app.get('/api/mofa-safety', async (request, response) => {
     return response
       .status(502)
       .json(errorResponse('MOFA_API_UNAVAILABLE', 'Live MOFA safety data is unavailable.'))
+  }
+})
+
+app.post('/api/ai-briefing', async (request, response) => {
+  const input = normalizeBriefingInput(request.body)
+  const fallback = createFallbackBriefing(input)
+  const apiKey = process.env.OPENAI_API_KEY?.trim()
+
+  if (!apiKey) {
+    return response.json(fallback)
+  }
+
+  try {
+    const briefing = await generateAiBriefing(input, apiKey)
+    return response.json(briefing)
+  } catch (error) {
+    console.error('AI briefing generation failed:', error)
+    return response.json(fallback)
   }
 })
 

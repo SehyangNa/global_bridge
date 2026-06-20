@@ -1,15 +1,16 @@
 export type MofaSafetyItem = {
   id: string
-  countryName: string
-  countryEnName: string
   title: string
-  description: string
+  summary: string
   lastUpdated: string
 }
+
+export type MofaDataStatus = 'live' | 'archived' | 'fallback'
 
 export type MofaSafetyResult = {
   ok: boolean
   live: boolean
+  status: MofaDataStatus
   items: MofaSafetyItem[]
   error?: {
     code: string
@@ -31,6 +32,7 @@ export async function fetchMofaSafetyInfo(
       return {
         ok: false,
         live: false,
+        status: 'fallback',
         items: [],
         error: data.error ?? {
           code: 'PROXY_ERROR',
@@ -41,13 +43,18 @@ export async function fetchMofaSafetyInfo(
 
     return {
       ok: true,
-      live: Boolean(data.live && data.items?.length),
+      live: data.status === 'live' && Boolean(data.items?.length),
+      status:
+        data.status === 'live' || data.status === 'archived'
+          ? data.status
+          : 'fallback',
       items: data.items ?? [],
     }
   } catch {
     return {
       ok: false,
       live: false,
+      status: 'fallback',
       items: [],
       error: {
         code: 'NETWORK_ERROR',

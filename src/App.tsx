@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import {
   koreanProfiles,
@@ -20,6 +20,11 @@ import {
   fetchMofaSafetyInfo,
   type MofaSafetyItem,
 } from './services/publicDataApi'
+import {
+  generateAiBriefing,
+  type AiBriefing,
+  type PublicDataEvidence,
+} from './services/aiBriefingApi'
 import type { Country, Industry, Purpose, RiskRequest, Urgency } from './types/risk'
 import {
   calculateScores,
@@ -31,10 +36,41 @@ import {
 
 type Step = 'landing' | 'input' | 'result'
 type CopyState = 'idle' | 'copied' | 'failed'
+type BriefingState = 'idle' | 'loading' | 'ready'
 type MofaDataState = {
-  status: 'idle' | 'loading' | 'live' | 'fallback'
+  status: 'idle' | 'loading' | 'live' | 'archived' | 'fallback'
   items: MofaSafetyItem[]
 }
+
+const demoPresets: Array<{ id: string; request: RiskRequest }> = [
+  {
+    id: 'kenyaImport',
+    request: {
+      country: 'Kenya',
+      purpose: 'Import',
+      industry: 'Food',
+      urgency: 'High',
+    },
+  },
+  {
+    id: 'nigeriaTrip',
+    request: {
+      country: 'Nigeria',
+      purpose: 'Business Trip',
+      industry: 'General',
+      urgency: 'High',
+    },
+  },
+  {
+    id: 'southAfricaPartner',
+    request: {
+      country: 'South Africa',
+      purpose: 'Partner Research',
+      industry: 'General',
+      urgency: 'Medium',
+    },
+  },
+]
 
 function App() {
   const [language, setLanguage] = useState<Language>('ko')
@@ -45,7 +81,9 @@ function App() {
     industry: 'General',
     urgency: 'Medium',
   })
-  const [briefingGenerated, setBriefingGenerated] = useState(false)
+  const [briefingState, setBriefingState] = useState<BriefingState>('idle')
+  const [aiBriefing, setAiBriefing] = useState<AiBriefing | null>(null)
+  const briefingRequestId = useRef(0)
   const [copyState, setCopyState] = useState<CopyState>('idle')
   const [mofaData, setMofaData] = useState<MofaDataState>({
     status: 'idle',
@@ -79,30 +117,37 @@ function App() {
   const warningSignals = koreanProfile?.warningSignals ?? profile.warningSignals
   const alternativeStrategy =
     koreanProfile?.alternativeStrategy ?? profile.alternativeStrategy
-  const liveMofaItems = mofaData.status === 'live' ? mofaData.items.slice(0, 2) : []
+  const mofaItems =
+    mofaData.status === 'live' || mofaData.status === 'archived'
+      ? mofaData.items.slice(0, 2)
+      : []
+  const liveMofaItems = mofaData.status === 'live' ? mofaItems : []
+  const archivedMofaItems = mofaData.status === 'archived' ? mofaItems : []
   const hasLiveMofa = liveMofaItems.length > 0
-  const mockSignalsToDisplay = hasLiveMofa
+  const hasArchivedMofa = archivedMofaItems.length > 0
+  const hasMofaData = hasLiveMofa || hasArchivedMofa
+  const mockSignalsToDisplay = hasMofaData
     ? localizedSignals.slice(1)
     : localizedSignals
   const mockSignalSummary = mockSignalsToDisplay
     .map(
       (signal) =>
-        `${signal.source}: ${signal.label} (${labels.signalLevel[signal.level][language]})`,
+        `${signal.source} [${t.mockData}]: ${signal.label}. ${signal.description} (${t.lastUpdated}: ${signal.lastUpdated})`,
     )
     .join('; ')
-  const liveSignalSummary = liveMofaItems
+  const mofaSignalSummary = mofaItems
     .map(
       (item) =>
-        `${language === 'ko' ? '외교부 실시간 안전정보' : 'Live MOFA safety information (original Korean)'}: ${item.title}`,
+        `${language === 'ko' ? '외교부 해외안전정보' : 'MOFA safety information'} [${hasLiveMofa ? t.livePublicData : t.archivedPublicData}]: ${item.title}. ${item.summary} (${t.lastUpdated}: ${item.lastUpdated})`,
     )
     .join('; ')
-  const publicSignalSummary = [liveSignalSummary, mockSignalSummary]
+  const publicSignalSummary = [mofaSignalSummary, mockSignalSummary]
     .filter(Boolean)
     .join('; ')
-  const signalSummaryLabel = hasLiveMofa
+  const signalSummaryLabel = hasMofaData
     ? language === 'ko'
-      ? '실시간 외교부 안전정보 및 MVP 모의 공공데이터 신호'
-      : 'Live MOFA safety information and MVP mock public-data signals'
+      ? `${hasLiveMofa ? '실시간' : '과거'} 외교부 안전정보 및 MVP 모의 공공데이터 신호`
+      : `${hasLiveMofa ? 'Live' : 'Archived'} MOFA safety information and MVP mock public-data signals`
     : language === 'ko'
       ? 'MVP 모의 공공데이터 신호'
       : 'MVP mock public-data signals'
@@ -110,6 +155,17 @@ function App() {
     language === 'ko'
       ? `${labels.country[request.country].ko} 공공데이터 기반 AI 리스크 브리핑 — 목적: ${labels.purpose[request.purpose].ko}, 산업: ${labels.industry[request.industry].ko}, 종합 수준: ${labels.riskLevel[level].ko}, 점수: ${result.overallScore}/100. ${profileSummary} 목적별 권고: ${purposeRecommendations[request.purpose].ko} ${signalSummaryLabel}: ${publicSignalSummary}. 핵심 조치: ${recommendedActions.join(' ')}`
       : `${profile.country} public data-powered AI risk briefing for ${request.purpose.toLowerCase()} in ${request.industry.toLowerCase()}: ${level} risk, score ${result.overallScore}/100. ${profileSummary} Purpose-specific recommendation: ${purposeRecommendations[request.purpose].en} ${signalSummaryLabel}: ${publicSignalSummary}. Key actions: ${recommendedActions.join(' ')}`
+  const generatedBriefingText = aiBriefing
+    ? [
+        `${t.situationSummary}: ${aiBriefing.situationSummary}`,
+        `${t.aiMainRisks}: ${aiBriefing.mainRisks.join(' · ')}`,
+        `${t.aiRecommendedActions}: ${aiBriefing.recommendedActions.join(' · ')}`,
+        `${t.aiAlternativeStrategy}: ${aiBriefing.alternativeStrategy}`,
+        `${t.aiSourceReminder}: ${aiBriefing.sourceReminder}`,
+        `${t.aiDecisionNote}: ${aiBriefing.finalDecisionNote}`,
+        `${t.generationMode}: ${aiBriefing.generationMode === 'ai' ? t.aiGenerated : t.templateFallback}`,
+      ].join('\n')
+    : summaryText
 
   useEffect(() => {
     document.documentElement.lang = language
@@ -122,7 +178,7 @@ function App() {
     void fetchMofaSafetyInfo(request.country).then((data) => {
       if (cancelled) return
       setMofaData({
-        status: data.live && data.items.length > 0 ? 'live' : 'fallback',
+        status: data.items.length > 0 ? data.status : 'fallback',
         items: data.items,
       })
     })
@@ -133,7 +189,10 @@ function App() {
   }, [request.country, step])
 
   function changeLanguage(nextLanguage: Language) {
+    briefingRequestId.current += 1
     setLanguage(nextLanguage)
+    setAiBriefing(null)
+    setBriefingState('idle')
     setCopyState('idle')
   }
 
@@ -141,9 +200,20 @@ function App() {
     key: Key,
     value: RiskRequest[Key],
   ) {
+    briefingRequestId.current += 1
     setRequest((current) => ({ ...current, [key]: value }))
-    setBriefingGenerated(false)
+    setAiBriefing(null)
+    setBriefingState('idle')
     setCopyState('idle')
+  }
+
+  function applyPreset(preset: RiskRequest) {
+    briefingRequestId.current += 1
+    setRequest(preset)
+    setAiBriefing(null)
+    setBriefingState('idle')
+    setCopyState('idle')
+    setMofaData({ status: 'idle', items: [] })
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -158,13 +228,13 @@ function App() {
       if (!navigator.clipboard?.writeText) {
         throw new Error('Clipboard API unavailable')
       }
-      await navigator.clipboard.writeText(summaryText)
+      await navigator.clipboard.writeText(generatedBriefingText)
       setCopyState('copied')
       window.setTimeout(() => setCopyState('idle'), 1800)
     } catch {
       const textArea = document.createElement('textarea')
       const previouslyFocused = document.activeElement
-      textArea.value = summaryText
+      textArea.value = generatedBriefingText
       textArea.style.position = 'fixed'
       textArea.style.left = '-9999px'
       textArea.style.top = '0'
@@ -190,6 +260,57 @@ function App() {
         window.setTimeout(() => setCopyState('idle'), 1800)
       }
     }
+  }
+
+  async function handleGenerateBriefing() {
+    const requestId = briefingRequestId.current + 1
+    briefingRequestId.current = requestId
+    setBriefingState('loading')
+    setAiBriefing(null)
+
+    const publicDataSignals: PublicDataEvidence[] = [
+      ...mofaItems.map((item) => ({
+        source: language === 'ko' ? '외교부 해외안전정보' : 'MOFA safety information',
+        title: item.title,
+        summary: item.summary,
+        status: (hasLiveMofa ? 'live' : 'archived') as 'live' | 'archived',
+        lastUpdated: item.lastUpdated,
+      })),
+      ...mockSignalsToDisplay.map((signal) => ({
+        source: signal.source,
+        title: signal.label,
+        summary: signal.description,
+        status: 'mock' as const,
+        lastUpdated: signal.lastUpdated,
+      })),
+    ]
+
+    const briefing = await generateAiBriefing({
+      language,
+      country: labels.country[request.country][language],
+      purpose: labels.purpose[request.purpose][language],
+      industry: labels.industry[request.industry][language],
+      urgency: labels.urgency[request.urgency][language],
+      overallRiskScore: result.overallScore,
+      riskLevel: labels.riskLevel[level][language],
+      categoryScores: Object.fromEntries(
+        categoryOrder.map((category) => [
+          labels.category[category][language],
+          result.categoryScores[category],
+        ]),
+      ),
+      recommendedActions: [
+        purposeRecommendations[request.purpose][language],
+        ...recommendedActions,
+      ],
+      warningSignals,
+      alternativeStrategy,
+      publicDataSignals,
+    })
+
+    if (briefingRequestId.current !== requestId) return
+    setAiBriefing(briefing)
+    setBriefingState('ready')
   }
 
   return (
@@ -283,6 +404,34 @@ function App() {
           </div>
 
           <form className="risk-form" onSubmit={handleSubmit}>
+            <div className="preset-panel">
+              <div className="preset-copy">
+                <strong>{t.demoPresets}</strong>
+                <p>{t.demoPresetsIntro}</p>
+              </div>
+              <div className="preset-buttons">
+                {demoPresets.map((preset) => {
+                  const isActive =
+                    request.country === preset.request.country &&
+                    request.purpose === preset.request.purpose &&
+                    request.industry === preset.request.industry &&
+                    request.urgency === preset.request.urgency
+
+                  return (
+                    <button
+                      className={isActive ? 'active' : ''}
+                      type="button"
+                      key={preset.id}
+                      aria-pressed={isActive}
+                      onClick={() => applyPreset(preset.request)}
+                    >
+                      {t.presets[preset.id as keyof typeof t.presets]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
             <label>
               <span>{t.country}</span>
               <select
@@ -297,6 +446,7 @@ function App() {
                   </option>
                 ))}
               </select>
+              <small>{t.countryHelper}</small>
             </label>
 
             <label>
@@ -313,6 +463,7 @@ function App() {
                   </option>
                 ))}
               </select>
+              <small>{t.purposeHelper}</small>
             </label>
 
             <label>
@@ -329,6 +480,7 @@ function App() {
                   </option>
                 ))}
               </select>
+              <small>{t.industryHelper}</small>
             </label>
 
             <label>
@@ -345,6 +497,7 @@ function App() {
                   </option>
                 ))}
               </select>
+              <small>{t.urgencyHelper}</small>
             </label>
 
             <button className="primary-button form-submit" type="submit">
@@ -379,9 +532,10 @@ function App() {
               <button
                 className="primary-button"
                 type="button"
-                onClick={() => setBriefingGenerated(true)}
+                disabled={briefingState === 'loading'}
+                onClick={handleGenerateBriefing}
               >
-                {t.generate}
+                {briefingState === 'loading' ? t.generating : t.generate}
               </button>
             </div>
           </div>
@@ -476,11 +630,19 @@ function App() {
                   <p>
                     {hasLiveMofa
                       ? t.publicSignalsLiveIntro
+                      : hasArchivedMofa
+                        ? t.publicSignalsArchivedIntro
                       : t.publicSignalsIntro}
                   </p>
                 </div>
-                <span className={`mock-label ${hasLiveMofa ? 'live' : ''}`}>
-                  {hasLiveMofa ? t.livePublicData : t.notLive}
+                <span
+                  className={`mock-label ${hasLiveMofa ? 'live' : hasArchivedMofa ? 'archived' : ''}`}
+                >
+                  {hasLiveMofa
+                    ? t.livePublicData
+                    : hasArchivedMofa
+                      ? t.archivedPublicData
+                      : t.mockData}
                 </span>
               </div>
               <div className="data-status-note" aria-live="polite">
@@ -489,10 +651,10 @@ function App() {
                 {mofaData.status === 'fallback' && <p>{t.liveFallbackNote}</p>}
               </div>
               <div className="public-signal-grid">
-                {liveMofaItems.map((item) => (
+                {mofaItems.map((item) => (
                   <section
-                    className="public-signal live-signal"
-                    key={`mofa-live-${item.id || item.title}`}
+                    className={`public-signal ${hasLiveMofa ? 'live-signal' : 'archived-signal'}`}
+                    key={`mofa-${item.id || item.title}`}
                   >
                     <div className="signal-heading">
                       <span className="signal-source">
@@ -500,12 +662,16 @@ function App() {
                           ? '외교부 해외안전정보'
                           : 'MOFA safety information'}
                       </span>
-                      <span className="signal-badge live">
-                        {t.livePublicData}
+                      <span
+                        className={`signal-badge ${hasLiveMofa ? 'live' : 'archived'}`}
+                      >
+                        {hasLiveMofa
+                          ? t.livePublicData
+                          : t.archivedPublicData}
                       </span>
                     </div>
                     <h4>{item.title}</h4>
-                    {item.description && <p>{item.description}</p>}
+                    {item.summary && <p>{item.summary}</p>}
                     <small>
                       {t.originalKorean} · {t.lastUpdated}:{' '}
                       {item.lastUpdated || '—'}
@@ -516,8 +682,8 @@ function App() {
                   <section className="public-signal" key={signal.source}>
                     <div className="signal-heading">
                       <span className="signal-source">{signal.source}</span>
-                      <span className={`signal-badge ${signal.level}`}>
-                        {labels.signalLevel[signal.level][language]}
+                      <span className="signal-badge mock">
+                        {t.mockData}
                       </span>
                     </div>
                     <h4>{signal.label}</h4>
@@ -552,13 +718,56 @@ function App() {
             </article>
 
             <article className="card briefing-card">
-              <h3>{t.generated}</h3>
-              {briefingGenerated ? (
-                <p>{summaryText}</p>
-              ) : (
-                <p>
-                  {t.generatedPlaceholder}
+              <div className="briefing-title-row">
+                <h3>{t.generated}</h3>
+                {aiBriefing && (
+                  <span className={`generation-badge ${aiBriefing.generationMode}`}>
+                    {aiBriefing.generationMode === 'ai'
+                      ? t.aiGenerated
+                      : t.templateFallback}
+                  </span>
+                )}
+              </div>
+              {briefingState === 'loading' ? (
+                <p className="briefing-loading" aria-live="polite">
+                  <span aria-hidden="true" />
+                  {t.generatingBriefing}
                 </p>
+              ) : aiBriefing ? (
+                <div className="generated-briefing" aria-live="polite">
+                  <section className="briefing-summary">
+                    <h4>{t.situationSummary}</h4>
+                    <p>{aiBriefing.situationSummary}</p>
+                  </section>
+                  <div className="briefing-columns">
+                    <section>
+                      <h4>{t.aiMainRisks}</h4>
+                      <ul>
+                        {aiBriefing.mainRisks.map((risk) => <li key={risk}>{risk}</li>)}
+                      </ul>
+                    </section>
+                    <section>
+                      <h4>{t.aiRecommendedActions}</h4>
+                      <ol>
+                        {aiBriefing.recommendedActions.map((action) => <li key={action}>{action}</li>)}
+                      </ol>
+                    </section>
+                  </div>
+                  <section>
+                    <h4>{t.aiAlternativeStrategy}</h4>
+                    <p>{aiBriefing.alternativeStrategy}</p>
+                  </section>
+                  <section className="briefing-source-note">
+                    <h4>{t.aiSourceReminder}</h4>
+                    <p>{aiBriefing.sourceReminder}</p>
+                  </section>
+                  <section className="briefing-decision-note">
+                    <h4>{t.aiDecisionNote}</h4>
+                    <p>{aiBriefing.finalDecisionNote}</p>
+                  </section>
+                </div>
+              ) : (
+                <p>{t.generatedPlaceholder}</p>
               )}
             </article>
           </div>
