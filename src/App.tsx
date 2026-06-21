@@ -540,6 +540,7 @@ function App() {
   const mofaSignals = displaySignals.filter((item) => item.sourceType === 'mofa')
   const kotraSignals = displaySignals.filter((item) => item.sourceType === 'kotra')
   const ksureSignals = displaySignals.filter((item) => item.sourceType === 'ksure')
+  const koreaEximSignals = displaySignals.filter((item) => item.sourceType === 'kexim')
   const mofaSafetyCoverage = coverageFor(
     mofaSignals.filter((item) => item.category === 'security'),
     fallbackSignals.some((item) => item.category === 'security'),
@@ -555,6 +556,10 @@ function App() {
   const ksureCoverage = coverageFor(
     ksureSignals,
     fallbackSignals.some((item) => item.category === 'industryRisk'),
+  )
+  const koreaEximCoverage = coverageFor(
+    koreaEximSignals,
+    fallbackSignals.some((item) => item.category === 'fx'),
   )
   const groqCoverage: DataCoverageStatus = aiBriefing?.generationMode === 'ai'
     ? 'live'
@@ -572,6 +577,7 @@ function App() {
     { id: 'mofa-travel', label: language === 'ko' ? '외교부 여행경보' : 'MOFA travel alert', status: mofaTravelCoverage },
     { id: 'kotra', label: 'KOTRA', status: kotraCoverage },
     { id: 'ksure', label: language === 'ko' ? '한국무역보험공사' : 'K-SURE risk index', status: ksureCoverage },
+    { id: 'korea-exim', label: language === 'ko' ? '한국수출입은행 환율' : 'Korea Eximbank FX', status: koreaEximCoverage },
     { id: 'groq', label: 'Groq AI', status: groqCoverage },
   ]
   const hasLimitedCoverage = coverageItems.some((item) =>
@@ -599,6 +605,12 @@ function App() {
       label: language === 'ko' ? '한국무역보험공사' : 'K-SURE',
       signals: ksureSignals,
       status: ksureCoverage,
+    },
+    {
+      id: 'korea-exim',
+      label: language === 'ko' ? '한국수출입은행 환율' : 'Korea Eximbank FX',
+      signals: koreaEximSignals,
+      status: koreaEximCoverage,
     },
     {
       id: 'fallback',

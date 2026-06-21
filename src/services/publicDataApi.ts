@@ -1,4 +1,4 @@
-export type PublicSignalSourceType = 'mofa' | 'kotra' | 'ksure' | 'fallback'
+export type PublicSignalSourceType = 'mofa' | 'kotra' | 'ksure' | 'kexim' | 'fallback'
 export type PublicSignalCategory =
   | 'security'
   | 'travel'

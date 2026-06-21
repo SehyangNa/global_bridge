@@ -5,6 +5,7 @@ import { fetchKotraMarketNews, sourceName as kotraMarketName } from './sources/k
 import { fetchKotraBreakingNews, sourceName as kotraBreakingName } from './sources/kotraBreakingNews.js'
 import { fetchKotraCertificationInfo, sourceName as kotraCertificationName } from './sources/kotraCertificationInfo.js'
 import { fetchKsureRiskIndex, sourceName as ksureName } from './sources/ksureRiskIndex.js'
+import { fetchKoreaEximExchange, sourceName as koreaEximName } from './sources/koreaEximExchange.js'
 import { createFallbackSignals, fallbackCategories } from './publicRiskFallback.js'
 import { countries } from './sources/common.js'
 
@@ -16,6 +17,7 @@ const sources = [
   [kotraBreakingName, fetchKotraBreakingNews],
   [kotraCertificationName, fetchKotraCertificationInfo],
   [ksureName, fetchKsureRiskIndex],
+  [koreaEximName, fetchKoreaEximExchange],
 ]
 
 export async function aggregatePublicRisk(query) {

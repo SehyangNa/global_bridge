@@ -50,7 +50,7 @@ export const officialPublicDataLinks = [
   },
   {
     label: 'Korea Eximbank exchange-rate information',
-    url: 'https://www.koreaexim.go.kr/ir/HPHKIR019M01',
+    url: 'https://www.koreaexim.go.kr/ir/HPHKIR020M01?apino=2&viewtype=C',
   },
 ]
 

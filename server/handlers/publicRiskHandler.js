@@ -63,7 +63,14 @@ export async function buildPublicRiskResponse(rawQuery = {}) {
   }
 
   try {
-    return { statusCode: 200, body: await aggregatePublicRisk(query) }
+    const body = await aggregatePublicRisk(query)
+    if (!process.env.KOREAEXIM_API_KEY?.trim()) {
+      body.error = {
+        code: 'MISSING_KOREAEXIM_API_KEY',
+        message: 'KOREAEXIM_API_KEY is not configured on the server. The exchange-rate signal uses MVP fallback data.',
+      }
+    }
+    return { statusCode: 200, body }
   } catch (error) {
     console.error('Public risk aggregation failed:', error)
     return {
