@@ -1,4 +1,5 @@
 # Global Bridge
+<img width="1375" height="741" alt="스크린샷 2026-06-20 22 49 31" src="https://github.com/user-attachments/assets/ec3f6473-d7b6-4596-8761-8736cca30570" />
 
 Public-data-powered AI country risk intelligence for international business decisions.
 
