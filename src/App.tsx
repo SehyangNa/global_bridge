@@ -541,6 +541,8 @@ function App() {
   const kotraSignals = displaySignals.filter((item) => item.sourceType === 'kotra')
   const ksureSignals = displaySignals.filter((item) => item.sourceType === 'ksure')
   const koreaEximSignals = displaySignals.filter((item) => item.sourceType === 'kexim')
+  const exchangeRateSignal = koreaEximSignals[0] ??
+    fallbackSignals.find((item) => item.category === 'fx')
   const mofaSafetyCoverage = coverageFor(
     mofaSignals.filter((item) => item.category === 'security'),
     fallbackSignals.some((item) => item.category === 'security'),
@@ -1102,6 +1104,33 @@ function App() {
                 ))}
               </div>
             </section>
+
+            {exchangeRateSignal && (
+              <article className={`dashboard-exchange-card ${exchangeRateSignal.status}`}>
+                <div className="exchange-card-heading">
+                  <div>
+                    <span>{language === 'ko' ? '환율 정보' : 'Exchange Rate'}</span>
+                    <h3>{signalTitle(exchangeRateSignal)}</h3>
+                  </div>
+                  <span className={`signal-badge ${exchangeRateSignal.status}`}>
+                    {exchangeRateSignal.status === 'live'
+                      ? t.livePublicData
+                      : exchangeRateSignal.status === 'archived'
+                        ? t.archivedPublicData
+                        : t.mockData}
+                  </span>
+                </div>
+                <p>{cleanedSignalSummary(exchangeRateSignal)}</p>
+                <div className="exchange-card-meta">
+                  <small>{t.lastUpdated}: {exchangeRateSignal.publishedAt ?? '—'}</small>
+                  {exchangeRateSignal.url && (
+                    <a href={exchangeRateSignal.url} target="_blank" rel="noreferrer">
+                      {t.officialSourceLink}
+                    </a>
+                  )}
+                </div>
+              </article>
+            )}
 
             <article className={`card risk-snapshot-card ${tone}`}>
               <div className="card-heading">

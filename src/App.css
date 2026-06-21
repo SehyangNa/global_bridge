@@ -1085,6 +1085,68 @@ select:focus {
   background: #f1f5f9;
 }
 
+.dashboard-exchange-card {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.075);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.dashboard-exchange-card.live {
+  border-color: rgba(94, 234, 212, 0.42);
+  background: rgba(20, 184, 166, 0.1);
+}
+
+.exchange-card-heading,
+.exchange-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.exchange-card-heading > div > span {
+  color: #99f6e4;
+  font-size: 0.875rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.exchange-card-heading h3 {
+  margin-top: 5px;
+  color: #ffffff;
+  font-size: 1.05rem;
+}
+
+.dashboard-exchange-card p {
+  margin: 0;
+  color: #dbeafe;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.exchange-card-meta {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 11px;
+}
+
+.exchange-card-meta small {
+  color: #bfdbfe;
+}
+
+.exchange-card-meta a {
+  color: #99f6e4;
+  font-size: 0.875rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
 .risk-dashboard-shell .risk-snapshot-card,
 .risk-dashboard-shell .dashboard-middle-grid > .card {
   border-color: rgba(255, 255, 255, 0.14);
@@ -2083,6 +2145,12 @@ ol {
   .coverage-items > div {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
+  }
+
+  .exchange-card-heading,
+  .exchange-card-meta {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .public-data-heading {
